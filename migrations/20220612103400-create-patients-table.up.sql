@@ -1,0 +1,6 @@
+CREATE TABLE "patients" (
+	"uuid" UUID NOT NULL,
+	"deleted" TIMESTAMP NULL DEFAULT NULL,
+	"resource" JSONB NULL DEFAULT NULL
+);
+
