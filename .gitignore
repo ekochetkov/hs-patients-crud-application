@@ -1,0 +1,11 @@
+resources/shadow/*
+resources/public/js/*
+!/resources/shadow/index.html
+.shadow-cljs
+node_modules
+*~
+*#*
+target
+*.bak
+.nrepl-port
+.lein-*

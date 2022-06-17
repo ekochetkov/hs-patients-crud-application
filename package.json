@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "highlight.js": "11.1.0",
+    "rc-easyui": "^1.2.6",
+    "react": "17.0.1",
+    "react-dom": "17.0.1",
+    "shadow-cljs": "^2.19.2"
+  }
+}
