@@ -1,5 +1,6 @@
 (defproject hs-patients-crud "hs-patients-crud"
   :dependencies [[org.clojure/clojure "1.11.1"]
+                 [javax.xml.bind/jaxb-api "2.3.1"]
                  [prismatic/schema "1.2.1"]
                  [org.clojure/tools.logging "1.2.4"]
                  [http-kit "2.1.18"]
