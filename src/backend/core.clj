@@ -3,22 +3,11 @@
   (:require
    [org.httpkit.server :refer [run-server send! with-channel on-close on-receive]]
    [compojure.core :refer [defroutes GET]]
-   [compojure.route :refer [resources]] ;files not-found
+   [compojure.route :refer [resources]]
    [hiccup.core :as hp]
-;   [clojure.tools.logging :as log]
    [clojure.edn]
    [schema.core :as schema]
-
-   [backend.ws :as ws]
-   
-;   [clojure.data.json :as json]
-;   [simple-compojure.resources :as web-app-resources]
-;   [simple-compojure.crud :as crud]
-;   [clojure.java.jdbc :as jdbc]
-;   [ring.middleware.params :refer [wrap-params]]
-;   [ring.middleware.keyword-params :refer [wrap-keyword-params]]  
-             )
-  )
+   [backend.ws :as ws]))
 
 (defonce server-stop-func (atom nil))
 
@@ -47,7 +36,5 @@
   (reset! server-stop-func (run-server #'app {:port (Integer/parseInt (System/getenv "PORT"))}))
   (println "Run server on localhost at port: 9009"))
 
-;(-main 9009)
 ;(@server-stop-func)
-
 ;(-main)
