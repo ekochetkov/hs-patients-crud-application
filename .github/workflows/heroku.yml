@@ -1,0 +1,60 @@
+name: Clojure CI to Heroku
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+  Build-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '14'
+      - name: Install shadow-cljs and deps
+        run: npm install -g shadow-cljs & npm install react rc-easyui
+      - name: Compile frontend
+        run: shadow-cljs release dev
+      - uses: actions/upload-artifact@v3
+        with:
+          name: main.js
+          path: resources/public/js/main.js
+        
+  Build-backend:
+    needs: [Build-frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install dependencies
+        run: lein deps
+      - uses: actions/download-artifact@v3
+        with:
+          name: main.js
+          path: resources/public/js/
+      - name: Compile backend
+        run: lein uberjar
+      - uses: actions/upload-artifact@master
+        with:
+          name: foo.jar
+          path: target/hs-patients-crud-0.0.1-SNAPSHOT-standalone.jar
+        
+  Deploy-to-heroku:
+    needs: [Build-backend]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '14'
+      - name: Install Heroku-cli and deps
+        run: npm install -g heroku && heroku plugins:install java
+      - uses: actions/download-artifact@v3
+        with:
+          name: foo.jar
+      - name: Deploy to Heroku
+        env:
+          HEROKU_API_KEY: ${{secrets.HEROKU_API_KEY}}
+        run: heroku deploy:jar hs-patients-crud-0.0.1-SNAPSHOT-standalone.jar --app demo-patients-crud
