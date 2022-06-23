@@ -1,4 +1,4 @@
-(defproject hs-patients-crud "hs-patients-crud"
+(defproject hs-patients-crud "0.0.1-SNAPSHOT"
   :dependencies [[org.clojure/clojure "1.11.1"]
                  [javax.xml.bind/jaxb-api "2.3.1"]
                  [prismatic/schema "1.2.1"]
