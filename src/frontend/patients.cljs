@@ -5,6 +5,7 @@
    [re-frame.core :as rf]))
 
 (def db {:patients {:data []
+                    :selection nil
                     :data-filtered []
                     :data-filters {:text-like ""}                    
                     :show-dialog nil
@@ -15,11 +16,14 @@
 (rf/reg-sub :patients/form-data-invalid
   #(get-in % [:patients :form-data-invalid]))
 
+(rf/reg-sub :patients/selection
+  #(get-in % [:patients :selection]))
+
 (rf/reg-sub :patients/show-dialog
   #(get-in % [:patients :show-dialog]))
 
 (rf/reg-sub :patients/data-filtered
-  #(clj->js (get-in % [:patients :data-filtered])))
+  #(get-in % [:patients :data-filtered]))
 
 (rf/reg-sub :patients/form-data
   #(get-in % [:patients :form-data]))
@@ -53,15 +57,19 @@
   (fn [cofx [_ [field value]]]
     (-> cofx
         (assoc-in [:db :patients :data-filters field] value)
-        (assoc :dispatch [:patients/clear-data-filtered]))))  
+        (assoc :dispatch [:patients/clear-data-filtered]))))
 
 (rf/reg-event-db :patients/filter-data
   (fn [app-state _]
     (let [data (get-in app-state [:patients :data])]
       (if-let [text-like (get-in app-state [:patients :data-filters :text-like])]
         (assoc-in app-state [:patients :data-filtered]
-                  (filter (fn [row] (some #(re-find (js/RegExp. text-like "i") (str %)) (vals (:resource row)))) data))
+                  (vec (filter (fn [row] (some #(re-find (js/RegExp. text-like "i") (str %)) (vals (:resource row)))) data)))
         (assoc-in app-state [:patients :data-filtered] data)))))
+
+(rf/reg-event-db :patients/on-selection-change
+  (fn [app-state [_ [row]]]
+    (assoc-in app-state [:patients :selection] row)))
 
 (defn timestamp->human-date [ts]
   (let [date (new js/Date ts)
@@ -86,7 +94,19 @@
   (fn [cofx _]
     (assoc cofx :dispatch [:comm/send-event [:patients/data {} 0 100]])))
 
-(rf/reg-event-fx :patients/send-event-create
+(rf/reg-event-fx :patients/send-event-delete
+  (fn [cofx _]
+    (let [uuid (aget (get-in cofx [:db :patients :selection]) "uuid")]
+        (assoc cofx :dispatch [:comm/send-event [:patients/delete uuid]]))))
+
+(rf/reg-event-fx :patients/delete
+  (fn [cofx _]
+    (-> cofx 
+      (assoc-in [:db :patients :show-dialog] nil)
+      (assoc-in [:db :patients :selection] nil)
+      (assoc :dispatch [:patients/patients-reload]))))
+
+(rf/reg-event-fx :patients/send-event-create   
   (fn [cofx _]
     (let [data (get-in cofx [:db :patients :form-data])]
         (assoc cofx :dispatch [:comm/send-event [:patients/create data]]))))
@@ -99,7 +119,8 @@
       (assoc :dispatch [:patients/patients-reload]))))
 
 (defn datagrid-toolbar []
-  (let [filters (rf/subscribe [:patients/data-filters])]
+  (let [filters (rf/subscribe [:patients/data-filters])
+        selection (rf/subscribe [:patients/selection])]
   (r/as-element [:div
                  [:> LinkButton {:style {:margin "5px"}
                                  :iconCls "icon-add"
@@ -107,6 +128,10 @@
                  [:> LinkButton {:style {:margin "5px"}
                                  :iconCls "icon-reload"
                                  :onClick #(rf/dispatch [:patients/patients-reload]) } "Reload"]
+                 [:> LinkButton {:disabled (not @selection)
+                                 :style {:margin "5px"}
+                                 :iconCls "icon-cancel"
+                                 :onClick #(rf/dispatch [:patients/show-dialog :delete]) } "Delete"]                 
                  [:> SearchBox {:style {:float "right" :margin "5px" :width "350px"}
                                 :value (:text-like @filters)
                                 :onChange #(rf/dispatch [:patients/update-data-filters [:text-like %]])}]])))
@@ -120,13 +145,17 @@
 
 (defn datagrid []
   (let [data (rf/subscribe [:patients/data-filtered])
-        filters (rf/subscribe [:patients/data-filters])]
+        filters (rf/subscribe [:patients/data-filters])
+        selection (rf/subscribe [:patients/selection])]
 ;  (js/console.log "Data in table: " (count @data) @data (str @data))
   [:div
    [:> DataGrid {:data @data
                  :style {:height "100%"}
                  :selectionMode "single"
-                 :toolbar datagrid-toolbar}
+                 :toolbar datagrid-toolbar
+                 :selection selection
+                 :idField "uuid"
+                 :onSelectionChange #(rf/dispatch [:patients/on-selection-change [%]])} 
     [:> GridColumn {:width "30px" :align "center" :field "#" :title "#"}]
     [:> GridColumn {:width "250px" :title "Patient name"
                      :render #(-> % .-row (aget "resource") (aget "patient_name")
@@ -143,6 +172,25 @@
     [:> GridColumn {:width "50%"  :title "Policy number"
                     :render #(-> % .-row (aget "resource") (aget "policy_number")
                                  (column-render-text-like (:text-like @filters)))}]]]))
+
+(defn dialog-delete []
+  (let [show-dialog (rf/subscribe [:patients/show-dialog])
+        selection (rf/subscribe [:patients/selection])]
+    (when @selection
+      [:> Dialog
+        {:closed (not= @show-dialog :delete)
+         :onClose #(rf/dispatch [:patients/show-dialog nil])
+         :title "Delete patient"
+         :modal true}
+        [:div {:style {:padding "30px 20px"} :className "f-full"}
+         [:p (str "Delete paptient: " (-> @selection (aget "resource") (aget "patient_name"))
+                                 " (" (-> @selection (aget "resource") (aget "birth_date")) ")?")]]
+
+     [:div {:className "dialog-button"}
+      [:> LinkButton {:onClick #(rf/dispatch [:patients/send-event-delete])
+                      :style {:float "left" :width "80px"}} "Yes"]        
+      [:> LinkButton {:onClick #(rf/dispatch [:patients/show-dialog nil])
+                      :style {:width "80px"}} "No"]]])))
 
 (defn dialog-create []
   (let [show-dialog (rf/subscribe [:patients/show-dialog])
@@ -200,4 +248,4 @@
                      :style {:width "80px"}} "Create"]]]))
 
 (defn ui []
-  [:div [datagrid] [dialog-create]])
+  [:div [datagrid] [dialog-create] [dialog-delete]])
