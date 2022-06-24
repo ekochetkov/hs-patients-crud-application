@@ -1,8 +1,8 @@
-name: Clojure CI to Heroku
+name: Clojure CI to Heroku (preprod)
 
 on:
-  push:
-    branches: [ "master" ]
+#  push:
+#    branches: [ "master" ]
   pull_request:
     branches: [ "master" ]
 
