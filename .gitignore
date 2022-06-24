@@ -9,3 +9,5 @@ target
 *.bak
 .nrepl-port
 .lein-*
+.clj-kondo
+.lsp
