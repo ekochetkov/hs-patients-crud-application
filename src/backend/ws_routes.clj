@@ -39,6 +39,10 @@
 (def ws-request-routes
   {:patients/data patients-data
    :patients/create patients-create-fn
+   :patients/update
+     (fn [{uuid :uuid resource :resource}]
+       (jdbc/update! db :patients
+          {:resource resource} ["uuid = ?::uuid" uuid]))
    :patients/delete
      (fn [uuid]
        (jdbc/update! db :patients
