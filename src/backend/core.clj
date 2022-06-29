@@ -23,9 +23,11 @@
    [:script (str " WS_URL = '" (System/getenv "WS_URL") "'; ")]
    [:script {:src "js/main.js"}]]]]))
 
+(def ctx {:db-spec (System/getenv "DATABASE_URL")})
+
 (defroutes app
   (GET "/" [] index-page)
-  (GET "/ws" [] ws/handler)
+  (GET "/ws" [] (partial ws/handler ctx))
   (resources "/"))
 
 (defn run-server-at-port [port]

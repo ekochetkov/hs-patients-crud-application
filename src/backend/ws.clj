@@ -24,7 +24,7 @@
  ;(log/info "channel closed:" status)
  (swap! channels #(remove #{channel} %)))
 
-(defn process-request [request ws-routes]
+(defn process-request [ctx request ws-routes]
   (try
     (let [
           data (:data request)
@@ -32,17 +32,17 @@
           args (rest data)]
        (s/validate [(s/one s/Keyword "keyword") s/Any] data)
        (if-let [f (get ws-routes func)]
-         [func (apply f args)]
+         [func (apply (partial f ctx) args)]
          [:comm/error :not-exists-func]))
     (catch Exception e
       [:comm/error :exception-process-request
        :details (.getMessage e)])))
 
-(defn ws-on-receive [channel message-str]
+(defn ws-on-receive [ctx channel message-str]
                                         ;(log/info (format "New message from channel %s %s" channel message-str))
   (try
     (let [request (clojure.edn/read-string message-str)
-          result  (process-request request ws-request-routes)
+          result  (process-request ctx request ws-request-routes)
           response (str (assoc request :data result))]
     (log/info (format "Request: >%s< response: >%s<" message-str response))
     (send! channel response))
@@ -50,11 +50,11 @@
     (log/info (str "Exception on receive request: " (.getMessage e)))
     (send! channel "Requst not in re-frame websocken-fx edn format!"))))
 
-(defn handler [request]
+(defn handler [ctx request]
   (with-channel request channel
     (connect! channel)
     (on-close channel (partial disconnect! channel))
-    (on-receive channel (partial ws-on-receive channel))))
+    (on-receive channel (partial ws-on-receive ctx channel))))
 
 ;(clojre.edn/read-string "")
 

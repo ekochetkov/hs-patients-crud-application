@@ -1,14 +1,10 @@
 (ns backend.ws-routes
   (:require [schema.core :as s]
             [clojure.data.json :as json]
-            [clojure.java.jdbc :as jdbc])
+            [clojure.java.jdbc :as jdbc]
+            [honey.sql :as hsql])
   (:import [java.sql Timestamp]
            [java.time Instant]))
-
-(def db (System/getenv "DATABASE_URL"))
-
-(defn patients-data [where limit offset]
-  (jdbc/query db "select uuid, resource from patients where deleted is null" {:keywordize? false}))
 
 (extend-protocol jdbc/IResultSetReadColumn
   org.postgresql.util.PGobject
@@ -29,21 +25,34 @@
       (.setType "jsonb")
       (.setValue (json/write-str val)))))
 
-(defn patients-create-fn [resource]
-  (let [uuid (java.util.UUID/randomUUID)]
-    (jdbc/insert! db :patients {:uuid uuid
-                                :deleted nil        
-                                :resource resource})
-  uuid))
-
 (def ws-request-routes
-  {:patients/data patients-data
-   :patients/create patients-create-fn
+  {:patients/data   
+    (fn [ctx where limit offset]
+     (let [{db-spec :db-spec} ctx
+           query {:select [:uuid :resource]
+                   :from [:patients]
+                   :where [:= nil]}]
+          (jdbc/query db-spec (hsql/format query) {:keywordize? false})))
+
+   :patients/create
+     (fn [ctx resource]
+       (let [{db-spec :db-spec} ctx
+             uuid (java.util.UUID/randomUUID)]
+         (jdbc/insert! db-spec :patients {:uuid uuid
+                                        :deleted nil        
+                                        :resource resource}) uuid))
+   
    :patients/update
-     (fn [{uuid :uuid resource :resource}]
-       (jdbc/update! db :patients
-          {:resource resource} ["uuid = ?::uuid" uuid]))
+     (fn [{db-spec :db-spec}
+          {uuid :uuid resource :resource}]
+         (jdbc/update! db-spec :patients
+                     {:resource resource} ["uuid = ?::uuid" uuid]))
+   
    :patients/delete
-     (fn [uuid]
-       (jdbc/update! db :patients
-          {:deleted (Timestamp/from (Instant/now))} ["uuid = ?::uuid" uuid]))})
+     (fn [{db-spec :db-spec} uuid]
+         (jdbc/update! db-spec :patients
+            {:deleted (Timestamp/from (Instant/now))} ["uuid = ?::uuid" uuid]))})
+
+;(hsql/format {:select [:*] :from [:patients] :where [:and [:= :deleted nil] [:like :patient_name "d"] [:= "sdf" "x"]] :limit 10})
+;(jdbc/query db q)
+
