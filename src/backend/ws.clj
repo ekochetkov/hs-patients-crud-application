@@ -25,25 +25,25 @@
  (swap! channels #(remove #{channel} %)))
 
 (defn process-request [ctx request ws-routes]
-  (try
-    (let [
-          data (:data request)
-          func (first data)
-          args (rest data)]
-       (s/validate [(s/one s/Keyword "keyword") s/Any] data)
-       (if-let [f (get ws-routes func)]
-         [func (apply (partial f ctx) args)]
-         [:comm/error :not-exists-func]))
-    (catch Exception e
-      [:comm/error :exception-process-request
-       :details (.getMessage e)])))
+  (assoc request :data  
+    (try
+      (let [data (:data request)
+            func (first data)
+            args (rest data)]
+         (s/validate [(s/one s/Keyword "keyword") s/Any] data)
+         (if-let [f (get ws-routes func)]
+           [func (apply (partial f ctx) args)]
+           [:comm/error :not-exists-func]))
+      (catch Exception e
+        [:comm/error :exception-process-request
+         :details (.getMessage e)]))))
 
 (defn ws-on-receive [ctx channel message-str]
                                         ;(log/info (format "New message from channel %s %s" channel message-str))
   (try
     (let [request (clojure.edn/read-string message-str)
           result  (process-request ctx request ws-request-routes)
-          response (str (assoc request :data result))]
+          response (str result)]
     (log/info (format "Request: >%s< response: >%s<" message-str response))
     (send! channel response))
   (catch Exception e

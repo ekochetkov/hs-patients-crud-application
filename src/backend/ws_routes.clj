@@ -2,6 +2,7 @@
   (:require [schema.core :as s]
             [clojure.data.json :as json]
             [clojure.java.jdbc :as jdbc]
+
             [honey.sql :as hsql])
   (:import [java.sql Timestamp]
            [java.time Instant]))
@@ -52,7 +53,3 @@
      (fn [{db-spec :db-spec} uuid]
          (jdbc/update! db-spec :patients
             {:deleted (Timestamp/from (Instant/now))} ["uuid = ?::uuid" uuid]))})
-
-;(hsql/format {:select [:*] :from [:patients] :where [:and [:= :deleted nil] [:like :patient_name "d"] [:= "sdf" "x"]] :limit 10})
-;(jdbc/query db q)
-
