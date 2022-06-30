@@ -28,7 +28,7 @@
            :details (.getMessage e)]))))
     (catch Exception e
       [:comm/error
-       :request-not-valid-end-string
+       :request-not-valid-edn-string
        :details (.getMessage e)])))
       
 (defn handler [ctx ring-request]

@@ -21,7 +21,19 @@
     (is (= (-> response :data second)
            (-> request :data rest)))))
 
+(deftest negative-not-valid-end-message
+  (let [ctx {}
+        message-str "not valid edn string"
+        result (ws/ws-process-request ctx message-str)]
+    (is (= (first  result) :comm/error))
+    (is (= (second result) :request-not-valid-edn-string))))
 
+(defmethod process-ws-event :event-with-exctiption
+  [_ _ _] (throw (Exception. "Some exception in event")))
 
-
-        
+(deftest negative-exception-on-process
+  (let [ctx {}
+        request {:data [:event-with-exctiption]}
+        result (ws/ws-process-request ctx (str request))]
+    (is (= (-> result :data first) :comm/error))
+    (is (= (-> result :data second) :exception-process-request))))
