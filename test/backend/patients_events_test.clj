@@ -12,13 +12,14 @@
 
 (deftest positive-create-patient
   (clear-table-patients ctx)
-(let [request {:data [:patients/create {"gender" "male"
-                                        "address" "New Zealand, Taranaki, Taupo, Bucs Road st. 2296" 
-                                        "birth_date" 702604800
-                                        "patient_name" "Brad Morris"
-                                        "policy_number" 5492505115922541}]}
+  (let [resource {"gender" "male"
+                  "address" "New Zealand, Taranaki, Taupo, Bucs Road st. 2296" 
+                  "birth_date" 702604800
+                  "patient_name" "Brad Morris"
+                  "policy_number" "5492505115922541"}
+        request {:data [:patients/create resource]}
         result (ws/ws-process-request ctx (str request))
-        count (first (jdbc/query (:db-spec ctx) "select count(*) from patients"))]
+        count (first (jdbc/query (:db-spec ctx)"select count(*) from patients"))]
     (is (= (type (-> result :data second))
            java.util.UUID))
     (is (= (:count count) 1))))
