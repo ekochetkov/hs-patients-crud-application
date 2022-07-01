@@ -1,12 +1,11 @@
 (ns backend.patients-events-test
   (:require
+   [backend.context :refer [ctx]]
    [backend.ws :as ws :refer [process-ws-event]]
    [backend.patients-events]
    [backend.db]
    [clojure.java.jdbc :as jdbc]
    [clojure.test :refer [deftest is]]))
-
-(def ctx {:db-spec (System/getenv "TEST_DATABASE_URL")})
 
 (defn- clear-table-patients [{db-spec :db-spec}]
   (jdbc/execute! db-spec "delete from patients"))

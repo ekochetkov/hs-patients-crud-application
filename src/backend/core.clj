@@ -1,6 +1,7 @@
 (ns backend.core
   (:gen-class)
   (:require
+   [backend.context :refer [ctx]]
    [org.httpkit.server :refer [run-server send! with-channel on-close on-receive]]
    [compojure.core :refer [defroutes GET]]
    [compojure.route :refer [resources]]
@@ -22,8 +23,6 @@
    [:div#app]
    [:script (str " WS_URL = '" (System/getenv "WS_URL") "'; ")]
    [:script {:src "js/main.js"}]]]]))
-
-(def ctx {:db-spec (System/getenv "DATABASE_URL")})
 
 (defroutes app
   (GET "/" [] index-page)
