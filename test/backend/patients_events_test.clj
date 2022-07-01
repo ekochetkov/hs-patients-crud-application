@@ -76,3 +76,23 @@
 
     (is (= (-> response :data first) :comm/error))    
     (is (= resource (:resource updated-row)))))
+
+
+(deftest positive-delete-patient
+  (clear-table-patients ctx)
+  (let [resource {"gender" "male"
+                  "address" "New Zealand, Taranaki, Taupo, Bucs Road st. 2296"
+                  "birth_date" 702604800
+                  "patient_name" "Brad Morris"
+                  "policy_number" "5492505115922541"}
+        uuid (process-ws-event ctx :patients/create [resource])
+        response (ws/ws-process-request ctx (str {:data [:patients/delete uuid]}))
+        added-row (get-by-id ctx uuid)
+        deleted-row (get-by-id ctx uuid)]
+
+    (when (= (-> response :data first) :comm/error)
+      (throw (Exception. (str response))))
+
+    (is (not (empty? added-row)))
+    (is (not (empty (:delted deleted-row))))
+    (is (= (count-table-patients ctx) 1))))

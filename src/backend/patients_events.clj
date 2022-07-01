@@ -25,3 +25,9 @@
           (merge (:resource source-row) modified-fields))]
       (s/validate db-row-schema target-row)      
       (jdbc/update! db-spec :patients {:resource (:resource target-row)} ["uuid = ?" uuid]) uuid))
+
+(defmethod process-ws-event :patients/delete
+  [ctx _ [uuid]]
+  (let [{db-spec :db-spec} ctx]
+     (jdbc/update! db-spec :patients
+        {:deleted (Timestamp/from (Instant/now))} ["uuid = ?::uuid" uuid])))
