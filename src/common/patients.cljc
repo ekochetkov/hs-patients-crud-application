@@ -1,70 +1,67 @@
 (ns common.patients
-  (:require [schema.core :as s]))
+  (:require [schema.core :as s]
+            #_[schema.utils :as u]))
 
-  #_(let [resource {"gender" "male" 
-                  "address" "New Zealand, Taranaki, Taupo, Bucs Road st. 2296"  s/Str
-                  "birth_date" 702604800 s/Int
-                  "patient_name" "Brad Morris" s/Str
-                    "policy_number" "5492505115922541" s/Str
-                    }])
+(def user-resource-schema
+  {"patient_name" {:pred #(re-matches #"^[\s\d\w]{5,}$" %)
+                   :message "The name may contains only characters and numbers legth more 5"}
+   "policy_number" {:pred #(re-matches #"^[\d]{16}$" %)
+                    :message "The policy number contains 16 digits"}})
 
-(def error-messages
-  {"patient_name"
-   (fn [error]
-     (let [sch (.schema error)]
-       
-     )
-   "The name may contains only characters and numbers legth more 5"
-   "gender" "The field 'gender' may contains only 'male', 'famale' values"})
-
-(def resource-schema
-  {(s/required-key "patient_name")
-     (s/conditional #(> (count %) 5) s/Str)
+(def db-resource-schema
+  {(s/required-key "patient_name") (s/conditional
+          (get-in user-resource-schema ["patient_name" :pred]) s/Str)
+   (s/required-key "policy_number") (s/conditional
+          (get-in user-resource-schema ["patient_name" :pred]) s/Str)   
    (s/required-key "birth_date") s/Int
    (s/required-key "gender") (s/enum "male" "female")
-   (s/required-key "address") s/Str
-   (s/required-key "policy_number") s/Str})
+   (s/required-key "address") s/Str})
 
 (def db-row-schema
   {(s/required-key :uuid) java.util.UUID
-   (s/required-key :deleted) s/Int
-   (s/required-key :resource) resource-schema})
+   (s/required-key :deleted) (s/maybe s/Int)
+   (s/required-key :resource) db-resource-schema})
 
-(defn validation-error-details [error]
-  (let [values (juxt #(.schema %) 
-                     #(.value %)
-                     #(.expectation-delay %)
-                     #(.fail-explanation %))]
-    (->> error :error values)))
 
-(defn resource-schema-error-decoder [errors]
+#_(defn resource-schema-error-decoder [errors]
   (map (fn [[field error]]
-;         (validation-error-details error)
-;         error
-;         (= error (symbol 'missing-required-key))
-;         (type error)
-;       (type (symbol 'missign-required-key))
          (or  (cond 
                  (= (symbol 'missing-required-key) error)
                     {field {:human "This field is required"
                             :code :missign-required-key}}
-                                        ;false true
                     (= schema.utils.ValidationError (type error))
-                      {field {:human (get error-messages field)
+                    (let [schema-error (.schema error)]
+                      (case schema-error
+                        java.lang.String {field {:h "Not valid data type" :c "Expected string type"}}
+
+
+                        {field {:p (u/validation-error-explain error)
+                                :z @(.expectation-delay error)
+                                :fail (.fail-explanation error)
+                                :t (type error)
+                                :r schema-error
+                                :x (type schema-error)
+                                := (= schema-error java.lang.String)}}
+                            )
+
+                      
+                        #_{field {:human "h" ;(get error-messages field)
                               :code :validation-error
                               :de [(.schema error)
                                    (.value error)
                                    (.expectation-delay error)
                                    (.fail-explanation error)]
-                              :error error}}                    
+                              :error error}}                    )
                     )
               {field [error (type error)]}
                                         ;              error
               )
          ) errors))
 
-(try
-  (s/validate resource-schema {"patient_name" 23 "gender" "male" "address" "df"})
+#_(try
+  (s/validate resource-schema {"res" 2
+                                        "pn" false "uuid" "sdf" "policy_number" 33 "patient_name" false "gender" 123 "birth_date" "d"  "address" 34
+                               })
   (catch Exception e
      (-> e .getData :error resource-schema-error-decoder  #_resource-schema-error-decoder )))
 
