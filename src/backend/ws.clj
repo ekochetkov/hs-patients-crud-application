@@ -10,7 +10,7 @@
   (fn [_ event-name _] event-name))
 
 (defmethod process-ws-event :default [_ _ _]
-  :event-not-found)
+  (throw (Exception. "Event not found")))
 
 (defn ws-process-request [ctx msg-str]
   (try
