@@ -3,7 +3,6 @@
    [org.httpkit.server :refer [send! as-channel on-receive]]
    [schema.core :as s]
    [clojure.edn]
-   [backend.ws-routes :refer [ws-request-routes]]
    [clojure.tools.logging :as log]))
 
 (defmulti process-ws-event
