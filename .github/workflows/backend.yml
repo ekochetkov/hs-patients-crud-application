@@ -1,0 +1,32 @@
+name: Backend build and test
+
+on:
+  push:
+    branches: ["backend"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: aidbox/db:12.1.1-PRO.RC1
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+        - 5432:5432
+    steps:
+    - uses: actions/checkout@v3
+      
+    - name: Install dependencies
+      run: lein deps
+      
+    - name: Migrate database schema
+      run: lein migratus
+      
+    - name: Run tests
+      env:
+        DATABASE_URL: "jdbc:postgresql://127.0.0.1:5432/clinic?user=postgres&password=postgres"
+      run: lein test
+      
+    - name: Compile backend
+      run: lein uberjar
