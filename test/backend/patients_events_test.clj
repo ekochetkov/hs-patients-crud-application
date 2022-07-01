@@ -1,6 +1,6 @@
 (ns backend.patients-events-test
   (:require
-   [backend.ws :as ws]
+   [backend.ws :as ws :refer [process-ws-event]]
    [backend.db]
    [clojure.java.jdbc :as jdbc]
    [clojure.test :refer [deftest is]]))
@@ -24,12 +24,12 @@
                   "patient_name" "Brad Morris"
                   "policy_number" "5492505115922541"}
         request {:data [:patients/create resource]}
-        result (ws/ws-process-request ctx (str request))
-        inserted-uuid (-> result :data second)
+        response (ws/ws-process-request ctx (str request))
+        inserted-uuid (-> response :data second)
         inserted-row (get-by-id ctx inserted-uuid)]
     
-    (when (= (-> result :data first) :comm/error)
-      (throw (Exception. (str result))))
+    (when (= (-> response :data first) :comm/error)
+      (throw (Exception. (str response))))
 
     (is (= resource (:resource inserted-row)))))
 
@@ -37,6 +37,42 @@
   (clear-table-patients ctx)
   (let [resource {}
         request {:data [:patients/create resource]}
-        result (ws/ws-process-request ctx (str request))]
-    (is (= (-> result :data first) :comm/error))
+        response (ws/ws-process-request ctx (str request))]
+    (is (= (-> response :data first) :comm/error))
     (is (= (count-table-patients ctx) 0))))
+
+(deftest positive-update-patient
+  (clear-table-patients ctx)  
+  (let [modified-fields {"patient_name" "Some new name"
+                         "address" "Some new address"}
+        resource {"gender" "male"
+                  "address" "New Zealand, Taranaki, Taupo, Bucs Road st. 2296" 
+                  "birth_date" 702604800
+                  "patient_name" "Brad Morris"
+                  "policy_number" "5492505115922541"}
+        uuid (process-ws-event ctx :patients/create [resource])
+        request {:data [:patients/update uuid modified-fields]}
+        response (ws/ws-process-request ctx (str request))
+        updated-row (get-by-id ctx uuid)]
+
+    (when (= (-> response :data first) :comm/error)
+      (throw (Exception. (str response))))
+    
+    (is (= (merge resource modified-fields)
+           (:resource updated-row)))))
+
+(deftest negative-update-patient
+  (clear-table-patients ctx)  
+  (let [modified-fields {"address" nil}
+        resource {"gender" "male"
+                  "address" "New Zealand, Taranaki, Taupo, Bucs Road st. 2296" 
+                  "birth_date" 702604800
+                  "patient_name" "Brad Morris"
+                  "policy_number" "5492505115922541"}
+        uuid (process-ws-event ctx :patients/create [resource])
+        request {:data [:patients/update uuid modified-fields]}
+        response (ws/ws-process-request ctx (str request))
+        updated-row (get-by-id ctx uuid)]
+
+    (is (= (-> response :data first) :comm/error))    
+    (is (= resource (:resource updated-row)))))
