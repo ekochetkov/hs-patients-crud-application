@@ -22,8 +22,8 @@ jobs:
       env:
         PGPASSWORD: postgres
       run: |
-        apt-get update
-        apt install -y postgresql-client-10
+        sudo apt-get update
+        sudo apt install -y postgresql-client-10
         psql -h 127.0.0.1 -p 5432 -U postgres -c "create database clinic"
       
     - name: Install dependencies
