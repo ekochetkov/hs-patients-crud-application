@@ -37,8 +37,7 @@
 
 (rf/reg-event-db :patients/update-form-data
   (fn [app-state [_ [field value]]]
-;    (js/console.log field value (type value))
-    (assoc-in app-state [:patients :form-data field] value)))
+    (assoc-in app-state [:patients :form-data :resource field] value)))
 
 (rf/reg-event-db :patients/form-data-on-validate
   (fn [app-state [_ errors]]
@@ -59,18 +58,6 @@
         (assoc-in [:db :patients :data-filters field] value)
         (assoc :dispatch [:patients/clear-data-filtered]))))
 
-(rf/reg-event-db :patients/filter-data
-  (fn [app-state _]
-    (let [data (get-in app-state [:patients :data])]
-      (if-let [text-like (get-in app-state [:patients :data-filters :text-like])]
-        (assoc-in app-state [:patients :data-filtered]
-                  (vec (filter (fn [row] (some #(re-find (js/RegExp. text-like "i") (str %)) (vals (:resource row)))) data)))
-        (assoc-in app-state [:patients :data-filtered] data)))))
-
-(rf/reg-event-db :patients/on-selection-change
-  (fn [app-state [_ [row]]]
-    (assoc-in app-state [:patients :selection] row)))
-
 (defn timestamp->human-date [ts]
   (let [date (new js/Date ts)
         y (.getFullYear date)
@@ -79,16 +66,33 @@
     (str y "-" (when (< m 10) "0") m  
            "-" (when (< d 10) "0") d )))
 
+(rf/reg-event-db :patients/filter-data
+  (fn [app-state _]
+    (let [data (get-in app-state [:patients :data])]
+      (if-let [text-like (get-in app-state [:patients :data-filters :text-like])]
+        (assoc-in app-state [:patients :data-filtered]
+           (filter (fn [row]
+                   (let [filter-vals (-> row
+                                         :resource
+                                         (assoc "birth_date" (timestamp->human-date (get-in row [:resource "birth_date"])))
+                                         vals)]
+                   (some #(re-find (js/RegExp. text-like "i") (str %)) filter-vals))) data))
+        (assoc-in app-state [:patients :data-filtered] data)))))
+
+(rf/reg-event-db :patients/on-selection-change
+  (fn [app-state [_ [row-from-datagrid]]]
+    (let [uuid (aget row-from-datagrid "uuid")
+          row (first (filter #(= (:uuid %) uuid) (get-in app-state [:patients :data])))]
+      (js/console.log row-from-datagrid row)      
+      (-> app-state
+        (assoc-in [:patients :selection] row)
+        (assoc-in [:patients :form-data] row)))))
+
 (rf/reg-event-fx :patients/data
   (fn [cofx [_ data]]
-    (let [rendered-data (mapv (fn [row rowIndex]
-                                (-> row
-                                 (assoc "#" rowIndex)
-                                 (assoc-in [:resource "birth_date"] (timestamp->human-date (get-in row [:resource "birth_date"])))))
-                              data (range 1 (inc (count data))))]
     (-> cofx
-        (assoc-in [:db :patients :data] rendered-data)
-        (assoc :dispatch [:patients/clear-data-filtered])))))
+        (assoc-in [:db :patients :data] data)
+        (assoc :dispatch [:patients/clear-data-filtered]))))
 
 (rf/reg-event-fx :patients/patients-reload
   (fn [cofx _]
@@ -101,10 +105,22 @@
 
 (rf/reg-event-fx :patients/delete
   (fn [cofx _]
-    (-> cofx 
+    (-> cofx
       (assoc-in [:db :patients :show-dialog] nil)
       (assoc-in [:db :patients :selection] nil)
       (assoc :dispatch [:patients/patients-reload]))))
+
+(rf/reg-event-fx :patients/send-event-update
+  (fn [cofx _]
+    (let [row (get-in cofx [:db :patients :form-data])]
+        (assoc cofx :dispatch [:comm/send-event [:patients/update row]]))))
+
+(rf/reg-event-fx :patients/update
+  (fn [cofx _]
+    (-> cofx 
+      (assoc-in [:db :patients :show-dialog] nil)
+      (assoc :dispatch [:patients/patients-reload]))))
+
 
 (rf/reg-event-fx :patients/send-event-create   
   (fn [cofx _]
@@ -131,7 +147,11 @@
                  [:> LinkButton {:disabled (not @selection)
                                  :style {:margin "5px"}
                                  :iconCls "icon-cancel"
-                                 :onClick #(rf/dispatch [:patients/show-dialog :delete]) } "Delete"]                 
+                                 :onClick #(rf/dispatch [:patients/show-dialog :delete]) } "Delete"]
+                 [:> LinkButton {:disabled (not @selection)
+                                 :style {:margin "5px"}
+                                 :iconCls "icon-edit"
+                                 :onClick #(rf/dispatch [:patients/show-dialog :update]) } "Update"]
                  [:> SearchBox {:style {:float "right" :margin "5px" :width "350px"}
                                 :value (:text-like @filters)
                                 :onChange #(rf/dispatch [:patients/update-data-filters [:text-like %]])}]])))
@@ -155,13 +175,14 @@
                  :toolbar datagrid-toolbar
                  :selection selection
                  :idField "uuid"
-                 :onSelectionChange #(rf/dispatch [:patients/on-selection-change [%]])} 
-    [:> GridColumn {:width "30px" :align "center" :field "#" :title "#"}]
+                 :onRowClick #(rf/dispatch [:patients/on-selection-change [%]])} 
+    [:> GridColumn {:width "30px" :align "center" :title "#"
+                    :render #(inc (.-rowIndex %))}]
     [:> GridColumn {:width "250px" :title "Patient name"
-                     :render #(-> % .-row (aget "resource") (aget "patient_name")
-                                 (column-render-text-like (:text-like @filters)))}]
+                    :render #(-> % .-row (aget "resource") (aget "patient_name")
+                            (column-render-text-like (:text-like @filters)))}]
     [:> GridColumn {:width "90px" :title "Birth date"
-                    :render #(-> % .-row (aget "resource") (aget "birth_date")
+                    :render #(-> % .-row (aget "resource") (aget "birth_date") timestamp->human-date
                                  (column-render-text-like (:text-like @filters)))}]
     [:> GridColumn {:width "70px" :title "Gender"
                     :render #(-> % .-row (aget "resource") (aget "gender")
@@ -176,15 +197,15 @@
 (defn dialog-delete []
   (let [show-dialog (rf/subscribe [:patients/show-dialog])
         selection (rf/subscribe [:patients/selection])]
-    (when @selection
+    (when (and @selection (= @show-dialog :delete))
       [:> Dialog
         {:closed (not= @show-dialog :delete)
          :onClose #(rf/dispatch [:patients/show-dialog nil])
          :title "Delete patient"
          :modal true}
         [:div {:style {:padding "30px 20px"} :className "f-full"}
-         [:p (str "Delete paptient: " (-> @selection (aget "resource") (aget "patient_name"))
-                                 " (" (-> @selection (aget "resource") (aget "birth_date")) ")?")]]
+         [:p (str "Delete paptient: " (get-in @selection [:resource "patient_name"])
+                                 " (" (timestamp->human-date (get-in @selection [:resource "birth_date"])) ")?")]]
 
      [:div {:className "dialog-button"}
       [:> LinkButton {:onClick #(rf/dispatch [:patients/send-event-delete])
@@ -215,7 +236,8 @@
                                              "message" "Need all digits"}}}
      :errorType "tooltip"
      :className "f-full"
-     :model @form-data
+                                        ; :model @form-data
+     :model {}
      :onChange (fn [f v]
                  (when (not= f "birth_date")
                    (rf/dispatch [:patients/update-form-data [f v]])))}
@@ -247,5 +269,68 @@
                      :onClick #(rf/dispatch [:patients/send-event-create])
                      :style {:width "80px"}} "Create"]]]))
 
+(defn dialog-update []
+  (let [show-dialog (rf/subscribe [:patients/show-dialog])
+        button-create-disabled (rf/subscribe [:patients/form-data-invalid])
+        form-data (rf/subscribe [:patients/form-data])        
+        label-width "130px"]
+  (when (and @form-data (= @show-dialog :update))
+        [:> Dialog
+         {:closed (not= @show-dialog :update)
+          :onClose #(rf/dispatch [:patients/show-dialog nil])
+          :title "Update patient"
+          :modal true}
+  [:div
+   {:style {:padding "30px 20px"} :className "f-full"}
+   [:> Form
+    {:onValidate #(rf/dispatch [:patients/form-data-on-validate %])
+     :rules {"patient_name" ["required" "length[5,100]"]
+             "birth_date" ["required"]
+             "gender" ["required"]
+             "address" ["required"]
+             "policy_number" {"required" true
+                              "all-numbers" {"validator" #(re-find (js/RegExp "[\\d]{4}\\ [\\d]{4}\\ [\\d]{4}\\ [\\d]{4}") %)
+                                             "message" "Need all digits"}}}
+     :errorType "tooltip"
+     :className "f-full"
+     :model (get @form-data :resource)
+     :onChange (fn [f v]
+                 (when (not= f "birth_date")
+                   (rf/dispatch [:patients/update-form-data [f v]])))}
+    [:> FormField {:focused true
+                   :name "patient_name"
+                   :style {:margin-bottom "10px"} :labelAlign "right" :labelWidth label-width :label "Patient name: "}
+     [:> TextBox {:value (get-in @form-data [:resource "patient_name"])
+                  :style {:width "400px"} :iconCls "icon-man"}]]
+    
+    [:> FormField {:name "birth_date"
+                   :style {:margin-bottom "10px"} :labelAlign "right" :labelWidth label-width :label "Birth date: "}
+     [:> DateBox {:value (js/Date. (get-in @form-data [:resource "birth_date"]))
+                  :format "yyyy-MM-dd"
+                  :onChange #(rf/dispatch [:patients/update-form-data ["birth_date" (.getTime %)]])
+                  :style {:width "200px"}}]]
+    
+    [:> FormField {:name "gender"
+                   :style {:margin-bottom "10px"} :labelAlign "right" :labelWidth label-width :label "Gender: "}
+     [:> ComboBox {:value (get-in @form-data [:resource "gender"])
+                   :data [{:value "male" :text "Male"}{:value "female" :text "Female"}]
+                   :inputId="inp_gender" :name "gender" :style {:width "200px"}}]]
+
+    [:> FormField {:name "address"
+                   :style {:margin-bottom "10px"} :labelAlign "right" :labelWidth label-width :label "Address: "}    
+     [:> TextBox {:value (get-in @form-data [:resource "address"])
+                  :inputId="inp_address" :style {:width "400px" :height "70px"} :multiline true}]] 
+    
+    [:> FormField {:name "policy_number"
+                   :style {:margin-bottom "10px"} :labelAlign "right" :labelWidth label-width :label "Policy number: "}
+     [:> MaskedBox {:value (get-in @form-data [:resource "policy_number"])
+                    :mask "9999 9999 9999 9999" :inputId="inp_policy_number"  :style {:width "155px"}}]]]]
+   
+   [:div {:className "dialog-button"}
+     [:> LinkButton {:disabled @button-create-disabled
+                     :onClick #(rf/dispatch [:patients/send-event-update])
+                     :style {:width "80px"}} "Update"]]])))
+
+
 (defn ui []
-  [:div [datagrid] [dialog-create] [dialog-delete]])
+  [:div [datagrid] [dialog-create] [dialog-delete] [dialog-update]])
