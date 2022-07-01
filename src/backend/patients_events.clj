@@ -3,13 +3,16 @@
             [clojure.data.json :as json]
             [clojure.java.jdbc :as jdbc]
             [backend.ws :refer [process-ws-event]]
+            [common.patients :refer [db-row-schema]]
             [honey.sql :as hsql])
   (:import [java.sql Timestamp]
            [java.time Instant]))
 
 (defmethod process-ws-event :patients/create
-  [ctx _ resource]
+  [ctx _ [resource]]
     (let [{db-spec :db-spec} ctx
-          uuid (java.util.UUID/randomUUID)]
-      (jdbc/insert! db-spec :patients
-         {:uuid uuid :deleted nil :resource resource}) uuid))
+          uuid (java.util.UUID/randomUUID)
+          row-for-insert{ :uuid uuid :deleted nil :resource resource}]
+      (s/validate db-row-schema row-for-insert)
+      
+      (jdbc/insert! db-spec :patients row-for-insert) uuid))
