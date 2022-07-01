@@ -31,3 +31,11 @@
   (let [{db-spec :db-spec} ctx]
      (jdbc/update! db-spec :patients
         {:deleted (Timestamp/from (Instant/now))} ["uuid = ?::uuid" uuid])))
+
+(defmethod process-ws-event :patients/read
+  [ctx _ [uuid modified-fields]]
+  (let [{db-spec :db-spec} ctx
+        query {:select [:uuid :resource]
+               :from [:patients]
+               :where [:= nil]}]
+       (jdbc/query db-spec (hsql/format query) {:keywordize? false})))
