@@ -1,6 +1,7 @@
 (ns backend.patients-events-test
   (:require
    [backend.ws :as ws :refer [process-ws-event]]
+   [backend.patients-events]
    [backend.db]
    [clojure.java.jdbc :as jdbc]
    [clojure.test :refer [deftest is]]))
