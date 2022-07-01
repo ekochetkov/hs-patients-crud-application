@@ -7,9 +7,9 @@
                  [compojure "1.3.4"]
                  [hiccup "1.0.5"]
                  [migratus/migratus "1.3.5"]
-		         [org.clojure/java.jdbc "0.6.1"]
-		         [org.postgresql/postgresql "9.4-1201-jdbc41"]
-				 [honeysql/honeysql "1.0.461"]
+		 [org.clojure/java.jdbc "0.6.1"]
+		 [org.postgresql/postgresql "9.4-1201-jdbc41"]
+                 [com.github.seancorfield/honeysql "2.2.891"]
                  [org.clojure/data.json "2.4.0"]
                  [stylefruits/gniazdo "1.2.1"]]
 
