@@ -15,5 +15,9 @@
 
   :plugins [ [migratus-lein "0.7.3"] ]
 
+  :migratus {:store :database
+             :migration-dir "migrations"
+             :db (System/getenv "DATABASE_URL")}
+
   :main backend.core
   :aot :all)

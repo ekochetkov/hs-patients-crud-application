@@ -113,4 +113,102 @@
       (throw (Exception. (str response))))
 
     (is (= (count-table-patients ctx) 2))
-    (is (= (count response) 1))))
+    (is (= (count (-> response :data second)) 1))))
+
+(deftest positive-read-filter-like-patient-name
+  (clear-table-patients ctx)
+  (let [resource-1 {"gender" "male"
+                    "address" "New Zealand, Taranaki, Taupo, Bucs Road st. 2296"
+                    "birth_date" 702604800
+                    "patient_name" "Brad Morris"
+                    "policy_number" "5492505115922541"}
+        uuid-1 (process-ws-event ctx :patients/create [resource-1])
+        resource-2 {"gender" "male"
+                    "address" "New Zealand, Taranaki, Taupo, Bucs Road st. 2296"
+                    "birth_date" 702604800
+                    "patient_name" "Jack Jackson"
+                    "policy_number" "5492505115922541"}
+        uuid-2 (process-ws-event ctx :patients/create [resource-2])
+        response (ws/ws-process-request ctx (str {:data [:patients/read [[:like "patient_name" "%Mor%" ]]]}))]
+
+    (when (= (-> response :data first) :comm/error)
+      (throw (Exception. (str response))))
+
+    (is (= (:resource (get-by-id ctx uuid-1))
+           (:resource (first (-> response :data second)))))
+
+    (is (= (count-table-patients ctx) 2))
+    (is (= (count (-> response :data second)) 1))))
+
+(deftest positive-read-filter-like-address
+  (clear-table-patients ctx)
+  (let [resource-1 {"gender" "male"
+                    "address" "New Zealand, Taranaki, Taupo, Bucs Road st. 2296"
+                    "birth_date" 702604800
+                    "patient_name" "Brad Morris"
+                    "policy_number" "5492505115922541"}
+        uuid-1 (process-ws-event ctx :patients/create [resource-1])
+        resource-2 {"gender" "male"
+                    "address" "New Zealand, Taranaki, Taupo, Bucs Road st. 2296"
+                    "birth_date" 702604800
+                    "patient_name" "Jack Jackson"
+                    "policy_number" "5492505115922541"}
+        uuid-2 (process-ws-event ctx :patients/create [resource-2])
+        response (ws/ws-process-request ctx (str {:data [:patients/read [[:like "address" "%upo%" ]]]}))]
+
+    (when (= (-> response :data first) :comm/error)
+      (throw (Exception. (str response))))
+
+    (is (= (count-table-patients ctx) 2))
+    (is (= (count (-> response :data second)) 2))))
+
+(deftest positive-read-filter-birth-date-eq
+  (clear-table-patients ctx)
+  (let [resource-1 {"gender" "male"
+                    "address" "New Zealand, Taranaki, Taupo, Bucs Road st. 2296"
+                    "birth_date" 1656979200
+                    "patient_name" "Brad Morris"
+                    "policy_number" "5492505115922541"}
+        uuid-1 (process-ws-event ctx :patients/create [resource-1])
+        resource-2 {"gender" "male"
+                    "address" "New Zealand, Taranaki, Taupo, Bucs Road st. 2296"
+                    "birth_date" 1656892800
+                    "patient_name" "Jack Jackson"
+                    "policy_number" "5492505115922541"}
+        uuid-2 (process-ws-event ctx :patients/create [resource-2])
+        response (ws/ws-process-request ctx (str {:data [:patients/read [[:= "birth_date" 1656892800]]]}))]
+
+    (when (= (-> response :data first) :comm/error)
+      (throw (Exception. (str response))))
+
+    (is (= (:resource (get-by-id ctx uuid-2))
+           (:resource (first (-> response :data second)))))
+
+    (is (= (count-table-patients ctx) 2))
+    (is (= (count (-> response :data second)) 1))))
+
+(deftest positive-read-filter-birth-date-after
+  (clear-table-patients ctx)
+  (let [resource-1 {"gender" "male"
+                    "address" "New Zealand, Taranaki, Taupo, Bucs Road st. 2296"
+                    "birth_date" 1656979200
+                    "patient_name" "Brad Morris"
+                    "policy_number" "5492505115922541"}
+        uuid-1 (process-ws-event ctx :patients/create [resource-1])
+        resource-2 {"gender" "male"
+                    "address" "New Zealand, Taranaki, Taupo, Bucs Road st. 2296"
+                    "birth_date" 1656892800
+                    "patient_name" "Jack Jackson"
+                    "policy_number" "5492505115922541"}
+        uuid-2 (process-ws-event ctx :patients/create [resource-2])
+        response (ws/ws-process-request ctx (str {:data [:patients/read [[:> "birth_date" 1656892810]]]}))]
+
+    (when (= (-> response :data first) :comm/error)
+      (throw (Exception. (str response))))
+
+    (is (= (:resource (get-by-id ctx uuid-1))
+           (:resource (first (-> response :data second)))))
+
+    (is (= (count-table-patients ctx) 2))
+    (is (= (count (-> response :data second)) 1))))
+

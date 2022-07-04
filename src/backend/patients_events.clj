@@ -4,6 +4,7 @@
             [clojure.java.jdbc :as jdbc]
             [backend.ws :refer [process-ws-event]]
             [common.patients :refer [db-row-schema]]
+            [backend.db :as db]
             [honey.sql :as hsql])
   (:import [java.sql Timestamp]
            [java.time Instant]))
@@ -33,9 +34,13 @@
         {:deleted (Timestamp/from (Instant/now))} ["uuid = ?::uuid" uuid])))
 
 (defmethod process-ws-event :patients/read
-  [ctx _ [uuid modified-fields]]
+  [ctx _ [where limit offset]]
   (let [{db-spec :db-spec} ctx
+        base-where [[:= :deleted nil]]
+        fields-type-cast {"birth_date" "bigint"}
+        resource-where (map (fn [[op field & args]]
+                         (into [op (db/pg->> "resource" field (get fields-type-cast field "text"))] args)) where)
         query {:select [:uuid :resource]
                :from [:patients]
-               :where [:= nil]}]
+               :where (concat [:and] base-where resource-where)}]
        (jdbc/query db-spec (hsql/format query) {:keywordize? false})))
