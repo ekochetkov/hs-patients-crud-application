@@ -3,7 +3,7 @@
             #_[schema.utils :as u]))
 
 (def user-resource-schema
-  {"patient_name" {:pred #(re-matches #"^[\s\d\w]{5,}$" %)
+  {"patient_name" {:pred #(re-matches #"^[А-яё\s\d\w]{5,}$" %)
                    :message "The name may contains only characters and numbers legth more 5"}
    "policy_number" {:pred #(re-matches #"^[\d]{16}$" %)
                     :message "The policy number contains 16 digits"}})
