@@ -19,3 +19,13 @@
     (doto (new org.postgresql.util.PGobject)
       (.setType "jsonb")
       (.setValue (json/write-str val)))))
+
+(defn pg->
+  "Postgres json(b) -> operator"
+  [parent fieldkey type]
+  [:raw (str "(" (name parent) "->'" (name fieldkey) "')::" type)])
+
+(defn pg->>
+  "Postgres json(b) ->> operator"
+  [parent fieldkey type]
+  [:raw (str "(" (name parent) "->>'" (name fieldkey) "')::" type)])
