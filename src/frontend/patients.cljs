@@ -1,6 +1,6 @@
 (ns frontend.patients
   (:require
-   ["rc-easyui" :refer [DataGrid GridColumn LinkButton Dialog Form TextBox DateBox SearchBox MaskedBox ComboBox FormField]]
+   ["rc-easyui" :refer [Layout LayoutPanel DataGrid GridColumn LinkButton Dialog Form TextBox DateBox SearchBox MaskedBox ComboBox FormField ButtonGroup]]
    [reagent.core :as r]
    [re-frame.core :as rf]))
 
@@ -11,6 +11,7 @@
                     :show-dialog nil
                     :form-data-invalid true
                     :form-data {}
+                    :remote-filters {}
                     :form-errors {}}})
 
 (rf/reg-sub :patients/form-data-invalid
@@ -152,6 +153,8 @@
                                  :style {:margin "5px"}
                                  :iconCls "icon-edit"
                                  :onClick #(rf/dispatch [:patients/show-dialog :update]) } "Update"]
+                 [:> LinkButton {:style {:margin "5px"}
+                                 :iconCls "icon-filter"} "Filter"]
                  [:> SearchBox {:style {:float "right" :margin "5px" :width "350px"}
                                 :value (:text-like @filters)
                                 :onChange #(rf/dispatch [:patients/update-data-filters [:text-like %]])}]])))
@@ -332,5 +335,83 @@
                      :style {:width "80px"}} "Update"]]])))
 
 
+;(defn ui []
+;  [:div [datagrid] [dialog-create] [dialog-delete] [dialog-update]])
+
+(rf/reg-event-db :patietns/update-remote-filters
+   (fn [app-state [_ [field value]]]
+     (js/console.log "update-remote-filters" field value)
+     (assoc-in app-state [:patients :remote-filters field] value)))
+
+(rf/reg-sub :patients/remote-filters
+  #(get-in % [:patients :remote-filters]))
+
+(defn filter-layout-panel-content []
+  (let [input-style {:width "100%"}
+        remote-filters (rf/subscribe [:patients/remote-filters])
+        bd-mode (:birth-date @remote-filters)]
+    [:div {:style {:padding "10px"}}
+
+    [:p "Patient name contains:"]
+       [:> TextBox {:style input-style}]
+
+    [:p "Adress contains:"]
+    [:> TextBox {:style input-style}]
+
+    [:p "Policy number equal:"]
+       [:> TextBox {:style input-style}]
+
+     [:p "Gender:"]
+    [:> ButtonGroup {:selectionMode "single"}
+     [:> LinkButton {:selected true
+                     :onClick #(rf/dispatch
+                                [:patietns/update-remote-filters [:gender :any]])} "Any"]
+     [:> LinkButton {:onClick #(rf/dispatch
+                                [:patietns/update-remote-filters [:gender :male]])}  "Male"]
+     [:> LinkButton {:onClick #(rf/dispatch
+                                [:patietns/update-remote-filters [:gender :female]])} "Female"]]
+
+    [:p "Birth date:"]
+    [:> ButtonGroup {:selectionMode "single"}
+     [:> LinkButton {:selected true
+                     :onClick #(rf/dispatch
+                                [:patietns/update-remote-filters [:birth-date :any]])} "Any"]
+     [:> LinkButton {:onClick #(rf/dispatch
+                                [:patietns/update-remote-filters [:birth-date :equal]])} "Equal"]
+     [:> LinkButton {:onClick #(rf/dispatch
+                                [:patietns/update-remote-filters [:birth-date :after]])} "After"]
+     [:> LinkButton {:onClick #(rf/dispatch
+                                [:patietns/update-remote-filters [:birth-date :before]])} "Before"]
+     [:> LinkButton {:onClick #(rf/dispatch
+                                [:patietns/update-remote-filters [:birth-date :between]])}"Between"]]
+
+     (when (some #(= bd-mode %) '(:equal :after :before :between))
+       [:p (when (= bd-mode :between) "Start: ") [:> DateBox {:style input-style}] ] )
+
+     (when (= bd-mode :between)
+       [:p "End: " [:> DateBox {:style input-style}] ])
+
+     [:hr]
+
+     [:> LinkButton "Reset"]
+     [:> LinkButton {:style {:float "right"}}"Apply"]
+
+    ]
+
+    ))
+
 (defn ui []
-  [:div [datagrid] [dialog-create] [dialog-delete] [dialog-update]])
+  [:> Layout {:style {"width" "100%" "height" "100%"}}
+
+       [:> LayoutPanel {:region "west"
+                        :title "Patients filters"
+                        :collapsible true
+                        :expander true
+                        :style {:width "300px"}}
+
+        [filter-layout-panel-content]
+        ]
+
+   [:> LayoutPanel {:region "center" :style {:height "100%"}}
+    [datagrid] ]
+   ])
