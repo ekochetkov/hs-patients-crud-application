@@ -42,5 +42,6 @@
                          (into [op (db/pg->> "resource" field (get fields-type-cast field "text"))] args)) where)
         query {:select [:uuid :resource]
                :from [:patients]
-               :where (concat [:and] base-where resource-where)}]
+               :where (concat [:and] base-where resource-where)
+               :limit 25}]
        (jdbc/query db-spec (hsql/format query) {:keywordize? false})))
