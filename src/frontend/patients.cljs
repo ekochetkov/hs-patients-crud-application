@@ -3,18 +3,47 @@
    ["rc-easyui" :refer [Layout LayoutPanel DataGrid GridColumn LinkButton Dialog Form TextBox DateBox SearchBox MaskedBox ComboBox FormField ButtonGroup]]
    [reagent.core :as r]
    [clojure.string :refer [blank?]]
+   [frontend.modules :as rfm]
    [re-frame.core :as rf]))
 
-(def db {:patients {:data []
-                    :selection nil
-                    :data-filtered []
-                    :data-filters {:text-like ""}                    
-                    :show-dialog nil
-                    :form-data-invalid true
-                    :form-data {}
-                    :remote-filters {}
-                    :remote-where {}
-                    :form-errors {}}})
+;(reg-event-fx              ;; -fx registration, not -db registration
+;  :my-event
+;  (fn [cofx [_ a]]        ;; 1st argument is coeffects, instead of db
+;    {:db       (assoc (:db cofx) :flag  a)
+;     :fx       [[:dispatch [:do-something-else 3]]]})) ;; return effects
+
+(def db {:data []
+         :selection nil
+         :data-filtered []
+         :data-filters {:text-like ""}
+         :show-dialog nil
+         :form-data-invalid true
+         :form-data {}
+         :remote-filters {}
+         :remote-where []
+         :datagrid-state {:selection nil
+                          :loading false
+                          :data []
+                          :total 0
+                          :pageSize 50
+                          :pageNumber 1}
+         :form-errors {}})
+
+(rfm/reg-event-db :show-dialog
+  (fn [module-state [_ dialog-name]]
+    (assoc module-state :show-dialog dialog-name)))
+
+(rfm/reg-event-db :show-dialog
+  (fn [module-state [_ dialog-name]]
+    (assoc module-state :show-dialog dialog-name)))
+
+(rfm/reg-event-db :update-form-data
+  (fn [module-state [_ [field value]]]
+    (assoc-in module-state [:form-data :resource field] value)))
+
+(rfm/reg-sub :show-dialog #(:show-dialog %))
+
+(rf/reg-sub :patients #(:patients %))
 
 (rf/reg-sub :patients/form-data-invalid
   #(get-in % [:patients :form-data-invalid]))
@@ -22,8 +51,6 @@
 (rf/reg-sub :patients/selection
   #(get-in % [:patients :selection]))
 
-(rf/reg-sub :patients/show-dialog
-  #(get-in % [:patients :show-dialog]))
 
 (rf/reg-sub :patients/data-filtered
   #(get-in % [:patients :data-filtered]))
@@ -34,13 +61,6 @@
 (rf/reg-sub :patients/data-filters
   #(get-in % [:patients :data-filters]))
 
-(rf/reg-event-db :patients/show-dialog
-  (fn [app-db [_ dialog]]
-    (assoc-in app-db [:patients :show-dialog] dialog)))
-
-(rf/reg-event-db :patients/update-form-data
-  (fn [app-state [_ [field value]]]
-    (assoc-in app-state [:patients :form-data :resource field] value)))
 
 (rf/reg-event-db :patients/form-data-on-validate
   (fn [app-state [_ errors]]
@@ -86,7 +106,7 @@
   (fn [app-state [_ [row-from-datagrid]]]
     (let [uuid (aget row-from-datagrid "uuid")
           row (first (filter #(= (:uuid %) uuid) (get-in app-state [:patients :data])))]
-      (js/console.log row-from-datagrid row)      
+;      (js/console.log row-from-datagrid row)
       (-> app-state
         (assoc-in [:patients :selection] row)
         (assoc-in [:patients :form-data] row)))))
@@ -144,7 +164,7 @@
   (r/as-element [:div
                  [:> LinkButton {:style {:margin "5px"}
                                  :iconCls "icon-add"
-                                 :onClick #(rf/dispatch [:patients/show-dialog :create]) } "Add"]
+                                 :onClick #(rfm/dispatch [:patients/show-dialog :create]) } "Add"]
                  [:> LinkButton {:style {:margin "5px"}
                                  :iconCls "icon-reload"
                                  :onClick #(rf/dispatch [:patients/patients-reload]) } "Reload"]
@@ -190,7 +210,7 @@
     [:> GridColumn {:width "250px" :title "Patient name"
                     :render #(-> % .-row (aget "resource") (aget "patient_name")
                             (column-render-text-like (:text-like @filters)))}]
-    [:> GridColumn {:width "90px" :title "Birth date"
+    [:> GridColumn {:width "120px" :align "center" :title "Birth date"
                     :render #(-> % .-row (aget "resource") (aget "birth_date") timestamp->human-date
                                  (column-render-text-like (:text-like @filters)))}]
     [:> GridColumn {:width "70px" :title "Gender"
@@ -223,13 +243,13 @@
                       :style {:width "80px"}} "No"]]])))
 
 (defn dialog-create []
-  (let [show-dialog (rf/subscribe [:patients/show-dialog])
+  (let [show-dialog (rfm/subscribe [:show-dialog])
         button-create-disabled (rf/subscribe [:patients/form-data-invalid])
         form-data (rf/subscribe [:patients/form-data])
         label-width "130px"]
         [:> Dialog
          {:closed (not= @show-dialog :create)
-          :onClose #(rf/dispatch [:patients/show-dialog nil])
+          :onClose #(rfm/dispatch [:show-dialog nil])
           :title "Create patient"
           :modal true}
   [:div
@@ -249,7 +269,7 @@
      :model {}
      :onChange (fn [f v]
                  (when (not= f "birth_date")
-                   (rf/dispatch [:patients/update-form-data [f v]])))}
+                   (rfm/dispatch [:update-form-data [f v]])))}
     [:> FormField {:name "patient_name"
                    :style {:margin-bottom "10px"} :labelAlign "right" :labelWidth label-width :label "Patient name: "}
      [:> TextBox {:inputId "inp_patient_name" :style {:width "400px"} :iconCls "icon-man"}]]
@@ -350,7 +370,7 @@
                          birth-date (:birth-date remote-filters)
                          birth-date-start (:birth-date-start remote-filters)
                          birth-date-end (:birth-date-end remote-filters)]
-                     (js/console.log "rf" (str remote-filters))
+;                     (js/console.log "rf" (str remote-filters))
                      (assoc-in app-state [:patients :remote-where] (cond-> []
                        patient-name (conj [:like "patient_name" (str "%" patient-name "%")])
                        address (conj [:like :address (str "%" address "%")])
@@ -376,8 +396,8 @@
 
 (rf/reg-event-db :patietns/update-remote-filters
   (fn [app-state [_ [field value]]]
-     (js/console.log "update-remote-filters" field value (blank? value) (type value))
-     (js/console.log "dissoc" (str (dissoc (get-in app-state [:patients :remote-filters]) field)))
+;     (js/console.log "update-remote-filters" field value (blank? value) (type value))
+;     (js/console.log "dissoc" (str (dissoc (get-in app-state [:patients :remote-filters]) field)))
      
     (cond-> app-state
       
@@ -405,7 +425,7 @@
   (let [input-style {:width "100%"}
         remote-filters (rf/subscribe [:patients/remote-filters])
         bd-mode (:birth-date @remote-filters)]
-(js/console.log "where" (str @(rf/subscribe [:patients/remote-where])))
+;(js/console.log "where" (str @(rf/subscribe [:patients/remote-where])))
     
     [:div {:style {:padding "10px"}}
 
@@ -507,6 +527,11 @@
 
    [:> LayoutPanel {:region "south"} (str @(rf/subscribe [:patients/remote-filters]))]
 
+   (let [patients-state @(rf/subscribe [:patients])]
+;         update-in patient]
+      [:> LayoutPanel {:region "east" :style {:width "300px"}} (str patients-state)]
+   )
+
    [:> LayoutPanel {:region "center" :style {:height "100%"}}
-    [datagrid] ]
+    [datagrid] [dialog-create] ]
    ])
