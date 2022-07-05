@@ -91,7 +91,7 @@
         (assoc-in [:patients :selection] row)
         (assoc-in [:patients :form-data] row)))))
 
-(rf/reg-event-fx :patients/data
+(rf/reg-event-fx :patients/read
   (fn [cofx [_ data]]
     (-> cofx
         (assoc-in [:db :patients :data] data)
@@ -100,7 +100,7 @@
 (rf/reg-event-fx :patients/patients-reload
                  (fn [cofx _]
                    (let [where (get-in cofx [:db :patients :remote-where])]
-    (assoc cofx :dispatch [:comm/send-event [:patients/data where 0 100]]))))
+    (assoc cofx :dispatch [:comm/send-event [:patients/read where 0 100]]))))
 
 (rf/reg-event-fx :patients/send-event-delete
   (fn [cofx _]
@@ -181,6 +181,9 @@
                  :toolbar datagrid-toolbar
                  :selection selection
                  :idField "uuid"
+                 :virtualScroll true
+                 :lazy true
+                 :onPageChange (fn [a b c d] (js/console.log "onPageChange" a b c d))
                  :onRowClick #(rf/dispatch [:patients/on-selection-change [%]])} 
     [:> GridColumn {:width "30px" :align "center" :title "#"
                     :render #(inc (.-rowIndex %))}]
@@ -349,10 +352,10 @@
                          birth-date-end (:birth-date-end remote-filters)]
                      (js/console.log "rf" (str remote-filters))
                      (assoc-in app-state [:patients :remote-where] (cond-> []
-                       patient-name (conj [:like :patient (str "%" patient-name "%")])
-                       address (conj [:like :address (str "%" patient-name "%")])
-                       policy-number (conj [:= :policy-number policy-number ])                     
-                       gender (conj [:= :gender gender])
+                       patient-name (conj [:like "patient_name" (str "%" patient-name "%")])
+                       address (conj [:like :address (str "%" address "%")])
+                       policy-number (conj [:= "policy_number" policy-number ])
+                       gender (conj [:= :gender (gender {:male "male" :female "female"})])
                                     birth-date (conj (case birth-date
                                                        :equal   [:=  :birth-date birth-date-start]
                                                        :after   [:=> :birth-date birth-date-start]
