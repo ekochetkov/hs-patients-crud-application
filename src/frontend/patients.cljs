@@ -5,6 +5,8 @@
    [clojure.string :refer [trim replace blank?]]
    [frontend.modules :as rfm]
    [common.patients]
+   [frontend.patients.dialog-create :as dialog-create] 
+   [frontend.rf-isolate-ns :as rf-ns]
    [re-frame.core :as rf]))
 
 ;(reg-event-fx              ;; -fx registration, not -db registration
@@ -13,23 +15,44 @@
 ;    {:db       (assoc (:db cofx) :flag  a)
 ;     :fx       [[:dispatch [:do-something-else 3]]]})) ;; return effects
 
+;(let [kw ::some-key]
+                                        ;   (js/console.log "xxx" (str kw) (name kw) (namespace kw)))
+
+;(rf-ns/reg-event-db ::some-event-in-patients-ns
+;                    (fn [ns-state [_ a b]]
+;                      (js/console.log "xxx" (str ns-state) a b)
+                                        ;
+
+                                        ;(assoc ns-state :a a :b b :sum (+ a b))))
+
+;(rf/reg-event-fx ::init-db
+;  (fn [cofx _]               
+
+(rf-ns/reg-event-fx ::init-state
+   (fn [cofx _]
+     {:db {}
+      :fx [[:dispatch [::dialog-create/init-state]]]}))
+
+;                      {:form-data {}
+;           :is-valid-form-data false}))
+
 (def db {:data []
          :selection nil
          :data-filtered []
          :data-filters {:text-like ""}
-         :show-dialog :create
+         :show-dialog nil
          :form-data-invalid true
          :form-data {}
          :remote-filters {}
          :remote-where []
+
+;         "frontend.patients.dialog-create" dialog-create/init-state
 
          :component-dialog-create {:form-data {}
                                    :is-valid-form-data false}
 
          :component-dialog-update {:form-data {}
                                    :is-valid-form-data false}
-
-         
          
          :datagrid-state {:selection nil
                           :loading false
@@ -52,33 +75,6 @@
 
 (def locale (:en locales))
 
-(def ui-patients-model
-  {"patient_name" {:label "Patient name"
-                   :set-fn trim
-                   :rc-input-class :TextBox}
-
-   "birth_date" {:label "Birth date"
-                 :set-fn #(.getTime %)
-                 :rc-input-class :DateBox    
-                 :rc-input-attrs {:format (:human-date-format locale)}}
-   
-   "gender" {:label "Gender"
-             :rc-input-class :ComboBox    
-             :rc-input-attrs {:data [{:value "male" :text "Male"}
-                                     {:value "female" :text "Female"}]}}
-   
-   "address" {:label "Address"
-              :rc-input-class :TextBox
-              :set-fn trim
-              :rc-input-attrs {:multiline true :style {:height "70px"}}}
-
-   "policy_number" {:label "Policy_number"
-                    :set-fn #(-> %
-                                 trim
-                                 (replace " " "")
-                                 (replace "_" ""))
-                    :rc-input-class :MaskedBox
-                    :rc-input-attrs {:mask "9999 9999 9999 9999"}}})
 
 (rfm/reg-event-db :show-dialog
   (fn [module-state [_ dialog-name]]
@@ -86,65 +82,18 @@
 
 (rfm/reg-sub :show-dialog #(:show-dialog %))
 
-(defn- set-field-ui-patients-model [field-name value]
-  (if-let [set-fn (get-in ui-patients-model [field-name :set-fn])]
-    (set-fn value) value))
+;(defn- set-field-ui-patients-model [field-name value]
+;  (if-let [set-fn (get-in ui-patients-model [field-name :set-fn])]
+;    (set-fn value) value))
 
 ;; Dialog create patient
-(rfm/reg-sub :component-dialog-create #(:component-dialog-create %))
 
-(rfm/reg-event-db :dialog-create.on-change-form-data
-  (fn [module-state [_ field-name value]]
-    (assoc-in module-state [:component-dialog-create
-                            :form-data
-                            field-name]
-      (set-field-ui-patients-model field-name value))))
 
-(rfm/reg-event-db :dialog-create.on-validate-form-data
-  (fn [module-state [_ errors]]
-    (assoc-in module-state [:component-dialog-create
-                            :is-valid-form-data] (nil? errors))))
+(rf/reg-sub :app-state #(str %))
 
-(defn- create-form-field [f-name f-data]
-  (let[{:keys [label rc-input-class rc-input-attrs]} f-data]
-  [:> FormField {:name f-name
-                 :labelAlign "right"
-                 :labelWidth "130px"
-                 :label (str label ": ")}
-   [:> (case rc-input-class
-         :TextBox TextBox
-         :DateBox DateBox
-         :ComboBox ComboBox
-         :MaskedBox MaskedBox)
-       rc-input-attrs]]))
 
-(defn component-dialog-create []
-  (let [show-dialog @(rfm/subscribe [:show-dialog])
-        component-state @(rfm/subscribe [:component-dialog-create])       
-        button-create-disabled (:is-valid-form-data component-state)
-        form-data (:form-data component-state)]
-    [:> Dialog
-      {:closed (not= show-dialog :create)
-       :title "Create patient"
-       :modal true
-       :style {:width "550px"}
-       :onClose #(rfm/dispatch [:show-dialog nil])}
-      [:div
-       {:style {:padding "30px 20px"} :className "f-full"}
-       (into [:> Form
-         {:errorType "tooltip"
-          :className "f-full"
-          :model form-data
-          :rules common.patients/validation-rules
-          :onChange (fn [field-name value]
-                        (rfm/dispatch [:dialog-create.on-change-form-data field-name value]))
-          :onValidate #(rfm/dispatch [:dialog-create.on-validate-form-data %])
-          }] (for [[f-name f-data] ui-patients-model] (create-form-field f-name f-data)))]
-       
-      [:div {:className "dialog-button"}
-       [:> LinkButton {:disabled (not button-create-disabled)
-                       :onClick #(rf/dispatch [:patients/send-event-create])
-                       :style {:width "80px"}} "Create"]]]))
+
+
 
 (rf/reg-sub :patients #(:patients %))
 
@@ -154,7 +103,6 @@
 (rf/reg-sub :patients/selection
   #(get-in % [:patients :selection]))
 
-
 (rf/reg-sub :patients/data-filtered
   #(get-in % [:patients :data-filtered]))
 
@@ -163,7 +111,6 @@
 
 (rf/reg-sub :patients/data-filters
   #(get-in % [:patients :data-filters]))
-
 
 (rf/reg-event-db :patients/form-data-on-validate
   (fn [app-state [_ errors]]
@@ -261,7 +208,13 @@
   (r/as-element [:div
                  [:> LinkButton {:style {:margin "5px"}
                                  :iconCls "icon-add"
-                                 :onClick #(rfm/dispatch [:patients/show-dialog :create]) } "Add"]
+                                 :onClick
+
+                                 #(rf/dispatch [::some-event-in-patients-ns 2 2])}
+
+                                 
+                                        ;#(rfm/dispatch [:patients/show-dialog :create]) } "Add"
+                                 ]
                  [:> LinkButton {:style {:margin "5px"}
                                  :iconCls "icon-reload"
                                  :onClick #(rf/dispatch [:patients/patients-reload]) } "Reload"]
@@ -570,11 +523,11 @@
 
    [:> LayoutPanel {:region "south"} (str @(rf/subscribe [:patients/remote-filters]))]
 
-   (let [patients-state @(rf/subscribe [:patients])]
+   (let [patients-state @(rf/subscribe [:app-state])]
 ;         update-in patient]
-      [:> LayoutPanel {:region "east" :style {:width "300px"}} (str patients-state)]
+      [:> LayoutPanel {:region "east" :style {:width "300px"}} patients-state]
    )
 
    [:> LayoutPanel {:region "center" :style {:height "100%"}}
-    [datagrid] [component-dialog-create] ]
+    [datagrid] [dialog-create/entry] ]
    ])

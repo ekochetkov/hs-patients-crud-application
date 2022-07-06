@@ -1,5 +1,4 @@
-(ns common.patients
-  (:require [schema.core :as s]))
+(ns common.patients)
 
 (def validation-rules
   {"patient_name" {"required" true

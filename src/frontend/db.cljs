@@ -7,13 +7,18 @@
    [goog.string :as gstring]
    [websocket-fx.core :as wfx]
    [frontend.modules :as m]
-   [frontend.patients :as patients]
+   [frontend.patients :as p]
    ))
 
 (def db {:center "patients"})
 
-(def app-db-default
-  (assoc db :module.patients patients/db))
+;(def app-db-default
+;  (assoc db :module.patients patients/db))
 
-(rf/reg-event-db :initialize-db
-  (fn [_ _] app-db-default))
+(rf/reg-event-fx :initialize-db
+                 (fn [cofx _]
+                   {:db db
+                   :fx [[:dispatch [::p/init-state]]]}
+
+
+                   ))
