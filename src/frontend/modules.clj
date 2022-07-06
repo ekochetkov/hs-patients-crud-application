@@ -14,7 +14,7 @@
            diffs# (diff module-state-current# module-state-new#)]
        (js/console.log
           "Update state in" (str ~module-name) "on event" (str ~event-name)
-          "chandged" (str (second diffs#)))
+          "changed" (str (second diffs#)))
        (assoc app-state# ~module-name module-state-new#))))
 
 (defmacro reg-event-db [event-name func]

@@ -2,8 +2,7 @@
   (:require
    ["rc-easyui" :refer [Layout LayoutPanel DataGrid GridColumn LinkButton Dialog Form TextBox DateBox SearchBox MaskedBox ComboBox FormField ButtonGroup]]
    [reagent.core :as r]
-   [schema.core :as schema]
-   [clojure.string :refer [blank?]]
+   [clojure.string :refer [trim replace blank?]]
    [frontend.modules :as rfm]
    [common.patients]
    [re-frame.core :as rf]))
@@ -55,31 +54,31 @@
 
 (def ui-patients-model
   {"patient_name" {:label "Patient name"
+                   :set-fn trim
                    :rc-input-class :TextBox}
 
-;     [:> DateBox {:value (js/Date. (get-in @form-data [:resource "birth_date"]))
-;                  :format "yyyy-MM-dd"
-;                  :onChange #(rf/dispatch [:patients/update-form-data ["birth_date" (.getTime %)]])
-
    "birth_date" {:label "Birth date"
-                  :set-fn #(.getTime %)
-                  :rc-input-class :DateBox    
-                  :rc-input-attrs {:format (:human-date-format locale)}}
+                 :set-fn #(.getTime %)
+                 :rc-input-class :DateBox    
+                 :rc-input-attrs {:format (:human-date-format locale)}}
    
-   #_{:name "gender"
-    :label "Gender"
-    :rc-input-class :ComboBox    
-    :rc-input-attrs {:data [{:value "male" :text "Male"}
-                            {:value "female" :text "Female"}]}}
-   #_{:name "address"
-    :label "Address"
-    :rc-input-class :TextBox    
-    :rc-input-attrs {:multiline true :style {:height "70px"}}}
+   "gender" {:label "Gender"
+             :rc-input-class :ComboBox    
+             :rc-input-attrs {:data [{:value "male" :text "Male"}
+                                     {:value "female" :text "Female"}]}}
+   
+   "address" {:label "Address"
+              :rc-input-class :TextBox
+              :set-fn trim
+              :rc-input-attrs {:multiline true :style {:height "70px"}}}
 
-   #_{:name "policy_number"
-    :label "Policy_number"
-    :rc-input-class :MaskedBox
-    :rc-input-attrs {:mask "9999 9999 9999 9999"}}})
+   "policy_number" {:label "Policy_number"
+                    :set-fn #(-> %
+                                 trim
+                                 (replace " " "")
+                                 (replace "_" ""))
+                    :rc-input-class :MaskedBox
+                    :rc-input-attrs {:mask "9999 9999 9999 9999"}}})
 
 (rfm/reg-event-db :show-dialog
   (fn [module-state [_ dialog-name]]
@@ -87,31 +86,24 @@
 
 (rfm/reg-sub :show-dialog #(:show-dialog %))
 
-;          :rules {"patient_name" ["required" "length[5,100]"]
-;             "birth_date" ["required"]
-;             "gender" ["required"]
-;             "address" ["required"]
-;             "policy_number" {"required" true
-;                              "all-numbers" {"validator" #(re-find (js/RegExp "[\\d]{4}\\ [\\d]{4}\\ [\\d]{4}\\ [\\d]{4}") %)
-;                                             "message" "Need all digits"}}}
 (defn- set-field-ui-patients-model [field-name value]
   (if-let [set-fn (get-in ui-patients-model [field-name :set-fn])]
     (set-fn value) value))
 
-(js/console.log "hhh" (schema/check schema/Str 2))
-
-
 ;; Dialog create patient
-(rfm/reg-event-db :dialog-create.on-change-form-data
-  (fn [module-state [_ [field-name value]]]
-    (assoc-in module-state [:component-dialog-create :form-data field-name]
-      (set-field-ui-patients-model field-name value))))
-
 (rfm/reg-sub :component-dialog-create #(:component-dialog-create %))
 
+(rfm/reg-event-db :dialog-create.on-change-form-data
+  (fn [module-state [_ field-name value]]
+    (assoc-in module-state [:component-dialog-create
+                            :form-data
+                            field-name]
+      (set-field-ui-patients-model field-name value))))
 
-
-(js/console.log "debug" (str ui-patients-model))
+(rfm/reg-event-db :dialog-create.on-validate-form-data
+  (fn [module-state [_ errors]]
+    (assoc-in module-state [:component-dialog-create
+                            :is-valid-form-data] (nil? errors))))
 
 (defn- create-form-field [f-name f-data]
   (let[{:keys [label rc-input-class rc-input-attrs]} f-data]
@@ -130,8 +122,7 @@
   (let [show-dialog @(rfm/subscribe [:show-dialog])
         component-state @(rfm/subscribe [:component-dialog-create])       
         button-create-disabled (:is-valid-form-data component-state)
-        form-data (str (:form-data component-state))]
-    (js/console.log "form-data" form-data)
+        form-data (:form-data component-state)]
     [:> Dialog
       {:closed (not= show-dialog :create)
        :title "Create patient"
@@ -144,19 +135,16 @@
          {:errorType "tooltip"
           :className "f-full"
           :model form-data
-          :onChange (fn [field-name value a b c d]
-                        (js/console.log "xx" field-name value a b c d)
-                        (rfm/dispatch [:dialog-create.on-change-form-data [field-name value]]))
-                                        ;          :onValidate #(rf/dispatch [:patients/form-data-on-validate %])
+          :rules common.patients/validation-rules
+          :onChange (fn [field-name value]
+                        (rfm/dispatch [:dialog-create.on-change-form-data field-name value]))
+          :onValidate #(rfm/dispatch [:dialog-create.on-validate-form-data %])
           }] (for [[f-name f-data] ui-patients-model] (create-form-field f-name f-data)))]
        
       [:div {:className "dialog-button"}
        [:> LinkButton {:disabled (not button-create-disabled)
                        :onClick #(rf/dispatch [:patients/send-event-create])
                        :style {:width "80px"}} "Create"]]]))
-
-
-
 
 (rf/reg-sub :patients #(:patients %))
 
