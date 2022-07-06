@@ -5,6 +5,7 @@
    [schema.core :as schema]
    [clojure.string :refer [blank?]]
    [frontend.modules :as rfm]
+   [common.patients]
    [re-frame.core :as rf]))
 
 ;(reg-event-fx              ;; -fx registration, not -db registration
