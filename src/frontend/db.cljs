@@ -14,7 +14,7 @@
 
 (def db {
          :. {:layout l/init-state
-             :patients p/db}
+             :patients p/init-state}
          })
 
 ;(def app-db-default

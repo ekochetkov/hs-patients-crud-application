@@ -15,6 +15,20 @@
 (def init-state {:form-data {}
                  :is-valid-form-data false})
 
+;; Send events to back
+(rf/reg-event-fx :patients/send-event-create   
+  (fn [cofx _]
+    (let [data (get-in cofx [:db :patients :form-data])]
+        (assoc cofx :dispatch [:comm/send-event [:patients/create data]]))))
+
+(rf/reg-event-fx :patients/create
+  (fn [cofx _]
+    (-> cofx
+      (assoc-in [:db :patients :show-dialog] nil)
+      (assoc-in [:db :patients :form-data] {})
+      (assoc :dispatch [:patients/patients-reload]))))
+
+
 (rf-nru-nwd/reg-sub ::state #(-> %))
 
 (rf-ns/reg-event-fx ::init-state
