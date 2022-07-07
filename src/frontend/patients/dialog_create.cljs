@@ -7,21 +7,25 @@
    [common.patients]
    [clojure.string :refer [trim replace blank?]]  
    [frontend.rf-isolate-ns :as rf-ns]
+   [frontend.rf-nru-nwd :as rf-nru-nwd]   
 ;   [frontend.patients :refer [ui-patients-model]]
    [frontend.patients.models :as models]   
    [re-frame.core :as rf]))
 
-(rf/reg-sub ::state #(get % *ns*))
+(def init-state {:form-data {}
+                 :is-valid-form-data false})
+
+(rf-nru-nwd/reg-sub ::state #(-> %))
 
 (rf-ns/reg-event-fx ::init-state
   (fn [_] {:db {:form-data {}
                 :is-valid-form-data false} :fx []}))
     
-(rf-ns/reg-event-db ::on-change-form-data
+(rf/reg-event-db ::on-change-form-data
   (fn [state [_ field-name value]]
-    (assoc state [:form-data field-name] value)))
+    (assoc-in state [:form-data field-name] value)))
 
-(rf-ns/reg-event-db ::on-validate-form-data
+(rf/reg-event-db ::on-validate-form-data
   (fn [module-state [_ errors]]
     (assoc module-state :is-valid-form-data (nil? errors))))
 
@@ -56,7 +60,7 @@
     (into [:> Form
             {:errorType "tooltip"
              :className "f-full"
-             :model {};form-data
+             :model form-data
              :rules common.patients/validation-rules
              :onChange on-change-form-data
              :onValidate on-validate-form-data}]

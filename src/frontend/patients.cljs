@@ -5,6 +5,7 @@
    [clojure.string :refer [trim replace blank?]]
    [frontend.modules :as rfm]
    [common.patients]
+   [frontend.rf-nru-nwd :as rf-nru-nwd]
    [frontend.patients.dialog-create :as dialog-create] 
    [frontend.rf-isolate-ns :as rf-ns]
    [re-frame.core :as rf]))
@@ -40,7 +41,7 @@
          :selection nil
          :data-filtered []
          :data-filters {:text-like ""}
-         :show-dialog nil
+         :show-dialog :create
          :form-data-invalid true
          :form-data {}
          :remote-filters {}
@@ -48,8 +49,7 @@
 
 ;         "frontend.patients.dialog-create" dialog-create/init-state
 
-         :component-dialog-create {:form-data {}
-                                   :is-valid-form-data false}
+         :. {:dialog-create dialog-create/init-state}
 
          :component-dialog-update {:form-data {}
                                    :is-valid-form-data false}
@@ -76,11 +76,15 @@
 (def locale (:en locales))
 
 
-(rfm/reg-event-db :show-dialog
+(rf/reg-event-db ::show-dialog
   (fn [module-state [_ dialog-name]]
     (assoc module-state :show-dialog dialog-name)))
 
-(rfm/reg-sub :show-dialog #(:show-dialog %))
+(rf-nru-nwd/reg-sub ::show-dialog #(;js/console.log "reg-sub" (str %)
+                                    
+                                    :show-dialog %
+
+                                    ))
 
 ;(defn- set-field-ui-patients-model [field-name value]
 ;  (if-let [set-fn (get-in ui-patients-model [field-name :set-fn])]
@@ -161,7 +165,7 @@
         (assoc-in [:db :patients :data] data)
         (assoc :dispatch [:patients/clear-data-filtered]))))
 
-(rf/reg-event-fx :patients/patients-reload
+(rf/reg-event-fx ::patients-reload
                  (fn [cofx _]
                    (let [where (get-in cofx [:db :patients :remote-where])]
     (assoc cofx :dispatch [:comm/send-event [:patients/read where 0 100]]))))
@@ -210,14 +214,14 @@
                                  :iconCls "icon-add"
                                  :onClick
 
-                                 #(rf/dispatch [::some-event-in-patients-ns 2 2])}
+;                                 #(rf/dispatch [::some-event-in-patients-ns 2 2])}
 
                                  
-                                        ;#(rfm/dispatch [:patients/show-dialog :create]) } "Add"
+                                        #(rf/dispatch [::show-dialog :create]) } "Add"
                                  ]
                  [:> LinkButton {:style {:margin "5px"}
                                  :iconCls "icon-reload"
-                                 :onClick #(rf/dispatch [:patients/patients-reload]) } "Reload"]
+                                 :onClick #(rf/dispatch [::patients-reload]) } "Reload"]
                  [:> LinkButton {:disabled (not @selection)
                                  :style {:margin "5px"}
                                  :iconCls "icon-cancel"
@@ -510,6 +514,8 @@
     ))
 
 (defn ui []
+  (let [show-dialog @(rf/subscribe [::show-dialog])]
+    (js/console.log "reg" show-dialog)
   [:> Layout {:style {"width" "100%" "height" "100%"}}
 
        [:> LayoutPanel {:region "west"
@@ -529,5 +535,7 @@
    )
 
    [:> LayoutPanel {:region "center" :style {:height "100%"}}
-    [datagrid] [dialog-create/entry] ]
-   ])
+    [datagrid] (case show-dialog
+                 :create [dialog-create/entry]
+                 nil) ]
+   ]))

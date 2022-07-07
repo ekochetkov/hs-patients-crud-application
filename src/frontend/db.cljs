@@ -8,17 +8,20 @@
    [websocket-fx.core :as wfx]
    [frontend.modules :as m]
    [frontend.patients :as p]
+   [frontend.layout :as l]
+   [re-frame.db]
    ))
 
-(def db {:center "patients"})
+(def db {
+         :. {:layout l/init-state
+             :patients p/db}
+         })
 
 ;(def app-db-default
 ;  (assoc db :module.patients patients/db))
 
-(rf/reg-event-fx :initialize-db
-                 (fn [cofx _]
-                   {:db db
-                   :fx [[:dispatch [::p/init-state]]]}
+(rf/reg-event-db :initialize-db
+  (fn [_] {:frontend db}))
 
-
-                   ))
+(defn state []
+  (js/console.log "state" (str @re-frame.db/app-db)))
