@@ -4,7 +4,7 @@
    [reagent.core :as r]
    [reagent.dom :as rdom]
    [re-frame.core :as rf]
-
+   [frontend.patients.datagrid :as dg]
    [frontend.db]
    [frontend.layout :as layout]
    [frontend.comm :as comm]
@@ -23,7 +23,7 @@
   (rf/clear-subscription-cache!)
   (let [root-el (.getElementById js/document "app")]
     (rdom/unmount-component-at-node root-el) 
-    (rdom/render [layout/ui] root-el)))
+    (rdom/render [dg/entry] #_[layout/ui] root-el)))
 
 (defn main []
   (js/console.log "main") 

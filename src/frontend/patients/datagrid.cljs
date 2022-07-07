@@ -7,17 +7,22 @@
    [common.patients]
    [clojure.string :refer [trim replace blank?]]  
    [frontend.rf-isolate-ns :as rf-ns]
-   [frontend.rf-nru-nwd :as rf-nru-nwd]   
+   [frontend.rf-nru-nwd :as rf-nru-nwd :refer [reg-sub]]   
 ;   [frontend.patients :refer [ui-patients-model]]
    [frontend.patients.models :as models]   
-   [re-frame.core :as rf]))
+   [re-frame.core :as rf :refer [trim-v]]))
 
-(def init-state {:selection nil
+(def init-state {:filter-text-like nil
+                 :selection nil                 
                  :loading false
                  :data []
                  :total 0
                  :pageSize 50
                  :pageNumber 1})
+
+(reg-sub ::state #(-> %))
+
+(defn state [] (rf/dispatch [::print-state]))
 
 (defn- timestamp->human-date [ts]
   (let [date (new js/Date ts)
@@ -44,7 +49,6 @@
   (fn [app-state [_ [row-from-datagrid]]]
     (let [uuid (aget row-from-datagrid "uuid")
           row (first (filter #(= (:uuid %) uuid) (get-in app-state [:patients :data])))]
-;      (js/console.log row-from-datagrid row)
       (-> app-state
         (assoc-in [:patients :selection] row)
         (assoc-in [:patients :form-data] row)))))
@@ -74,35 +78,56 @@
                    (let [where (get-in cofx [:db :patients :remote-where])]
     (assoc cofx :dispatch [:comm/send-event [:patients/read where 0 100]]))))
 
-(defn datagrid-toolbar []
-  (let [filters (rf/subscribe [:patients/data-filters])
-        selection (rf/subscribe [:patients/selection])]
-  (r/as-element [:div
-                 [:> LinkButton {:style {:margin "5px"}
-                                 :iconCls "icon-add"
-                                 :onClick
+(rf/reg-event-db ::update-filter-text-like
+  (fn [state [_ value]] (assoc state :filter-text-like value)))
 
-;                                 #(rf/dispatch [::some-event-in-patients-ns 2 2])}
+(defn toolbar-buttons [{:keys [selection filter-text-like]}]
+  [{:caption "Add" :class :LinkButton :iconCls "icon-add" :style {:margin "5px"}
+     :onClick #(rf/dispatch [:frontend.patients/show-dialog :create])}
+    
+    {:caption "Reload" :class :LinkButton :iconCls "icon-reload" :style {:margin "5px"}
+     :onClick #(rf/dispatch [::read])}
 
-                                 
-                                        #(rf/dispatch [::show-dialog :create]) } "Add"
-                                 ]
-                 [:> LinkButton {:style {:margin "5px"}
-                                 :iconCls "icon-reload"
-                                 :onClick #(rf/dispatch [::patients-reload]) } "Reload"]
-                 [:> LinkButton {:disabled (not @selection)
-                                 :style {:margin "5px"}
-                                 :iconCls "icon-cancel"
-                                 :onClick #(rf/dispatch [:patients/show-dialog :delete]) } "Delete"]
-                 [:> LinkButton {:disabled (not @selection)
-                                 :style {:margin "5px"}
-                                 :iconCls "icon-edit"
-                                 :onClick #(rf/dispatch [:patients/show-dialog :update]) } "Update"]
-                 [:> LinkButton {:style {:margin "5px"}
-                                 :iconCls "icon-filter"} "Filter"]
-                 [:> SearchBox {:style {:float "right" :margin "5px" :width "350px"}
-                                :value (:text-like @filters)
-                                :onChange #(rf/dispatch [:patients/update-data-filters [:text-like %]])}]])))
+    {:caption "Delete" :class :LinkButton :iconCls "icon-cancel" :style {:margin "5px"}
+     :disabled (not selection)
+     :onClick #(rf/dispatch [:frontend.patients/show-dialog :delete])}
+
+    {:caption "Update" :class :LinkButton :iconCls "icon-edit" :style {:margin "5px"}
+     :disabled (not selection)
+     :onClick #(rf/dispatch [:frontend.patients/show-dialog :update])}
+
+    {:class :SearchBox :style {:float "right" :margin "5px" :width "350px"}
+     :value filter-text-like
+     :onChange #(rf/dispatch [::update-filter-text-like %])}])
+  
+(defn datagrid-toolbar [state]
+  (r/as-element (into [:div]
+     (for [tb (toolbar-buttons state)]
+        [:> (case (:class tb)
+               :LinkButton LinkButton
+               :SearchBox SearchBox) tb (:caption tb)]))))
+
+(defn entry []
+  (let [state @(rf/subscribe [::state])
+        {:keys [data selection filter-text-like]} state]
+    [:div
+     [:> DataGrid {:data [] ;@data
+                   :style {:height "100%"}
+                   :selectionMode "single"
+                   :toolbar (partial datagrid-toolbar state)
+                   :selection selection
+                   :idField "uuid"
+                   :virtualScroll true
+                   :lazy true
+                   :onPageChange (fn [a b c d] (js/console.log "onPageChange" a b c d))
+                   :onRowClick #(rf/dispatch [:patients/on-selection-change [%]])}
+    
+    [:> GridColumn {:width "30px"  :title "#" :align "center"  :render #(inc (.-rowIndex %))}]
+    [:> GridColumn {:width "250px" :title "Patient name" :field "patient_name"}]
+    [:> GridColumn {:width "120px" :title "Birth date" :align "center" :field "birth_date"}]
+    [:> GridColumn {:width "70px" :title "Gender" :field "gender"}]
+    [:> GridColumn {:width "50%" :title "Address" :field "address"}]
+    [:> GridColumn {:width "50%"  :title "Policy number" :field "policy_number"}]]]))
 
 (rf/reg-event-fx :patients/read
   (fn [cofx [_ data]]
@@ -110,38 +135,5 @@
         (assoc-in [:db :patients :data] data)
         (assoc :dispatch [:patients/clear-data-filtered]))))
 
-
-(defn entry []
-  (let [data (rf/subscribe [:patients/data-filtered])
-        filters (rf/subscribe [:patients/data-filters])
-        selection (rf/subscribe [:patients/selection])]
-;  (js/console.log "Data in table: " (count @data) @data (str @data))
-  [:div
-   [:> DataGrid {:data @data
-                 :style {:height "100%"}
-                 :selectionMode "single"
-                 :toolbar datagrid-toolbar
-                 :selection selection
-                 :idField "uuid"
-                 :virtualScroll true
-                 :lazy true
-                 :onPageChange (fn [a b c d] (js/console.log "onPageChange" a b c d))
-                 :onRowClick #(rf/dispatch [:patients/on-selection-change [%]])} 
-    [:> GridColumn {:width "30px" :align "center" :title "#"
-                    :render #(inc (.-rowIndex %))}]
-    [:> GridColumn {:width "250px" :title "Patient name"
-                    :render #(-> % .-row (aget "resource") (aget "patient_name")
-                            (column-render-text-like (:text-like @filters)))}]
-    [:> GridColumn {:width "120px" :align "center" :title "Birth date"
-                    :render #(-> % .-row (aget "resource") (aget "birth_date") timestamp->human-date
-                                 (column-render-text-like (:text-like @filters)))}]
-    [:> GridColumn {:width "70px" :title "Gender"
-                    :render #(-> % .-row (aget "resource") (aget "gender")
-                                 (column-render-text-like (:text-like @filters)))}]
-    [:> GridColumn {:width "50%" :title "Address"
-                    :render #(-> % .-row (aget "resource") (aget "address")
-                                 (column-render-text-like (:text-like @filters)))}]
-    [:> GridColumn {:width "50%"  :title "Policy number"
-                    :render #(-> % .-row (aget "resource") (aget "policy_number")
-                                 (column-render-text-like (:text-like @filters)))}]]]))
-
+(rf/reg-event-db ::print-state
+  (fn [state] (js/console.log "state" (str state))))
