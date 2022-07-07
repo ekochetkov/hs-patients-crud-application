@@ -12,16 +12,16 @@
     (js/console.log response)
     app-state))
 
-(rf/reg-event-fx :comm/send-event
-  (fn [cofx [_ event]]
-    (let [request {:message event :on-response [:comm/receive-event]}]
-      (js/console.log (str "Send event to back: "event))
-      (assoc cofx :dispatch [::wfx/request socket-id request]))))
+(rf/reg-event-fx ::send-event
+  (fn [cofx [_ event-handler-id event]]
+    (let [request {:message event :on-response [:comm/receive-event event-handler-id]}]
+      (js/console.log (str "Send event to back: " event  ))
+      (assoc cofx :fx [[:dispatch [::wfx/request socket-id request]]]))))
 
 (rf/reg-event-fx :comm/receive-event
-  (fn [cofx [_ event]]
-   (js/console.log (str "New event dispatch from back: " event))
-   (assoc cofx :dispatch event)))
+  (fn [cofx [_ event-handler-id event-from-back]]
+   (js/console.log (str "New event dispatch from back: " (first event-from-back) " " (count (second event-from-back)) " " (take 5 (second event-from-back)) " handled by " event-handler-id))
+   (assoc cofx :fx [[:dispatch [event-handler-id event-from-back]]])))
 
 (defn start [url]
-  (rf/dispatch [::wfx/connect socket-id {:url url}]))
+  (rf/dispatch [::wfx/connect socket-id {:url url}]))  
