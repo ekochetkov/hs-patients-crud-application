@@ -105,7 +105,7 @@
 
     {:caption "Delete" :class :LinkButton :iconCls "icon-cancel" :style {:margin "5px"}
      :disabled (not selection)
-     :onClick #(rf/dispatch [:frontend.patients/show-dialog :delete])}
+     :onClick #(rf/dispatch [:frontend.patients.dialog-delete/show-dialog :delete])}
 
     {:caption "Update" :class :LinkButton :iconCls "icon-edit" :style {:margin "5px"}
      :disabled (not selection)

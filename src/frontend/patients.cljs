@@ -10,21 +10,20 @@
 ;   [frontend.patients.filter-panel :as filter-panel]
    [frontend.patients.dialog-create :as dialog-create]
 ;   [frontend.patients.dialog-update :as dialog-update]
+   [frontend.patients.dialog-delete :as dialog-delete]
    [frontend.comm :as comm]
+   [frontend.patients.models :as models]
    [re-frame.core :as rf]))
 
 (def init-state {:show-dialog nil
                  :. {:datagrid datagrid/init-state
 ;;                     :filter-panel filter-panel/init-state
+;;                     :dialog-update dialog-update/init-state                     
                      :dialog-create dialog-create/init-state
-;;                     :dialog-update dialog-update/init-state
+                     :dialog-delete dialog-delete/init-state
                      }})
                          
-(rf/reg-event-db ::show-dialog
-  (fn [module-state [_ dialog-name]]
-    (assoc module-state :show-dialog dialog-name)))
-
-(reg-sub ::show-dialog #(:show-dialog %))
+(reg-sub ::state #(-> %))
 
 (rf/reg-event-fx ::datagrid-reload
   (fn [cofx]
@@ -33,10 +32,11 @@
         [:dispatch [::comm/send-event ::datagrid/read [:patients/read {} 0 0]]]])))
 
 (defn ui []
-  (let [show-dialog @(rf/subscribe [::show-dialog])]
+  (let [state @(rf/subscribe [::state])
+        selection (get-in state [:. :datagrid :selection])]
   [:> Layout {:style {"width" "100%" "height" "100%"}}
 
-       [:> LayoutPanel {:region "west"
+       #_[:> LayoutPanel {:region "west"
                         :title "Patients filters"
                         :collapsible true
                         :expander true
@@ -48,13 +48,13 @@
 ;   [:> LayoutPanel {:region "south"} (str @(rf/subscribe [:patients/remote-filters]))]
 
    #_(let [patients-state @(rf/subscribe [:app-state])]
-;         update-in patient]
+;         update-in patient]f
       [:> LayoutPanel {:region "east" :style {:width "300px"}} patients-state]
    )
 
    [:> LayoutPanel {:region "center" :style {:height "100%"}}
-;    [datagrid/entry]
-    (case show-dialog
-                 :create [dialog-create/entry]
-                 nil) ]
+    [datagrid/entry]
+    [dialog-create/entry models/Patient]
+    [dialog-delete/entry selection]
+                  ]
    ]))
