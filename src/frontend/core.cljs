@@ -8,7 +8,7 @@
    [frontend.db]
    [frontend.layout :as layout]
    [frontend.comm :as comm]
-   [frontend.patients]
+   [frontend.patients :as p]
    [frontend.rf-nru-nwd :as rf-nru-nwd]
    ))
 
@@ -28,8 +28,8 @@
 (defn main []
   (js/console.log "main") 
   (rf/dispatch-sync [:initialize-db])
-;  (comm/start js/WS_URL)
-;  (rf/dispatch [:patients/patients-reload])
+  (comm/start js/WS_URL)
+  (rf/dispatch [::p/datagrid-reload])
   (mount-root))
 
 (js/console.log "App entry point here" js/WS_URL)

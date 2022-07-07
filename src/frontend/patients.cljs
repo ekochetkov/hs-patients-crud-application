@@ -10,7 +10,7 @@
 ;   [frontend.patients.filter-panel :as filter-panel]
    [frontend.patients.dialog-create :as dialog-create]
 ;   [frontend.patients.dialog-update :as dialog-update]
-   
+   [frontend.comm :as comm]
    [re-frame.core :as rf]))
 
 (def init-state {:show-dialog nil
@@ -26,9 +26,14 @@
 
 (reg-sub ::show-dialog #(:show-dialog %))
 
+(rf/reg-event-fx ::datagrid-reload
+  (fn [cofx]
+    (assoc cofx :fx
+       [[:dispatch [::datagrid/start-loading]]
+        [:dispatch [::comm/send-event ::datagrid/read [:patients/read {} 0 0]]]])))
+
 (defn ui []
   (let [show-dialog @(rf/subscribe [::show-dialog])]
-    (js/console.log "reg" show-dialog)
   [:> Layout {:style {"width" "100%" "height" "100%"}}
 
        [:> LayoutPanel {:region "west"
