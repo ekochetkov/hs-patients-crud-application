@@ -5,35 +5,39 @@
    [clojure.string :refer [trim replace blank?]]
    [frontend.modules :as rfm]
    [common.patients]
+   [frontend.comm :as comm]   
    [clojure.string :refer [trim replace blank?]]  
    [frontend.rf-isolate-ns :as rf-ns]
-   [frontend.rf-nru-nwd :as rf-nru-nwd]   
+   [frontend.rf-nru-nwd :as rf-nru-nwd :refer [reg-sub]]   
 ;   [frontend.patients :refer [ui-patients-model]]
    [frontend.patients.models :as models]   
    [re-frame.core :as rf]))
 
-(def init-state {:form-data {}
+(def init-state {:dialog-closed true
+                 :form-data {} 
                  :is-valid-form-data false})
 
-;; Send events to back
-(rf/reg-event-fx :patients/send-event-create   
-  (fn [cofx _]
-    (let [data (get-in cofx [:db :patients :form-data])]
-        (assoc cofx :dispatch [:comm/send-event [:patients/create data]]))))
+(reg-sub ::state #(-> %))
 
-(rf/reg-event-fx :patients/create
+(rf/reg-event-db ::show-dialog
+   #(assoc % :dialog-closed false
+             :form-data {}
+             :is-valid-form-data false))
+
+(rf/reg-event-db ::close-dialog
+  #(assoc % :dialog-closed true))
+
+(rf/reg-event-fx ::send-event-create   
   (fn [cofx _]
+    (let [data (get-in cofx [:db :form-data])]
+      (assoc cofx :fx [[:dispatch [::comm/send-event ::create [:patients/create data]]]]))))
+
+(rf/reg-event-fx ::create 
+  (fn [cofx]
     (-> cofx
-      (assoc-in [:db :patients :show-dialog] nil)
-      (assoc-in [:db :patients :form-data] {})
-      (assoc :dispatch [:patients/patients-reload]))))
-
-
-(rf-nru-nwd/reg-sub ::state #(-> %))
-
-(rf-ns/reg-event-fx ::init-state
-  (fn [_] {:db {:form-data {}
-                :is-valid-form-data false} :fx []}))
+      (assoc-in [:db :dialog-closed] true)
+      (assoc-in [:db :form-data] {})
+      (assoc :fx [[:dispatch [:frontend.patients/datagrid-reload]]]))))
     
 (rf/reg-event-db ::on-change-form-data
   (fn [state [_ field-name value]]
@@ -44,16 +48,24 @@
     (assoc module-state :is-valid-form-data (nil? errors))))
 
 (defn- on-change-form-data [field-name value]
-  (rf/dispatch [::on-change-form-data field-name value]))
+  (this-as this
+    (let [set-fn (-> this
+                   (aget "patientModel")
+                   (aget field-name)
+                   (aget "setFn"))
+          new-value (if set-fn
+                      (set-fn value)
+                      value)]
+    (rf/dispatch [::on-change-form-data field-name new-value]))))
 
 (defn- on-validate-form-data [errors]
   (rf/dispatch [::on-validate-form-data errors]))
 
 (defn- on-dialog-close []
-  (rf/dispatch [:frontend.patients/show-dialog nil]))
+  (rf/dispatch [::close-dialog]))
 
 (defn- on-create-button-click []
-  (rf/dispatch [:frontend.patients/send-event-create]))
+  (rf/dispatch [::send-event-create]))
 
 (defn- create-form-field [f-name f-data]
   (let[{:keys [label rc-input-class rc-input-attrs]} f-data]
@@ -68,36 +80,36 @@
          :MaskedBox MaskedBox)
        rc-input-attrs]]))
 
-(defn- form []
-  (let [form-data
-        (:form-data @(rf/subscribe [::state]))]
+(defn- form [state patient-model]
+  (let [form-data (:form-data state)]
     (into [:> Form
             {:errorType "tooltip"
              :className "f-full"
              :model form-data
+             :patientModel patient-model
              :rules common.patients/validation-rules
              :onChange on-change-form-data
              :onValidate on-validate-form-data}]
-           (for [[f-name f-data] models/Patient]
+           (for [[f-name f-data] patient-model]
                   (create-form-field f-name f-data)))))
 
-(defn- footer []
-  (let [button-create-disabled
-        (:is-valid-form-data {}
-         ;@(rfm/subscribe [::state]) 
-         )]
+(defn- footer [state]
+  (let [button-create-disabled (:is-valid-form-data state)]
     [:div {:className "dialog-button"}
       [:> LinkButton {:disabled (not button-create-disabled)
                       :onClick on-create-button-click
                       :style {:width "80px"}} "Create"]]))
     
-(defn entry []
-  [:> Dialog
-   {:title "Create patient"
-    :modal true
-    :onClose on-dialog-close
-    :style {:width "550px"}}
-   [:div
-    {:style {:padding "30px 20px"} :className "f-full"}
-     [form]]
-     [footer]])
+(defn entry [patient-model]
+  (let [state @(rf/subscribe [::state])
+        closed (:dialog-closed state)]
+    [:> Dialog
+     {:title "Create patient"
+      :closed closed
+      :modal true
+      :onClose on-dialog-close
+      :style {:width "550px"}}
+     [:div
+      {:style {:padding "30px 20px"} :className "f-full"}
+       [form state patient-model]]
+       [footer state]]))

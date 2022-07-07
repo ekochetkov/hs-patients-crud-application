@@ -98,7 +98,7 @@
 
 (defn- toolbar-buttons [{:keys [selection filter-text-like]}]
   [{:caption "Add" :class :LinkButton :iconCls "icon-add" :style {:margin "5px"}
-     :onClick #(rf/dispatch [:frontend.patients/show-dialog :create])}
+     :onClick #(rf/dispatch [:frontend.patients.dialog-create/show-dialog])}
     
     {:caption "Reload" :class :LinkButton :iconCls "icon-reload" :style {:margin "5px"}
      :onClick #(rf/dispatch [:frontend.patients/datagrid-reload])}
