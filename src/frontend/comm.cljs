@@ -20,7 +20,7 @@
 
 (rf/reg-event-fx :comm/receive-event
   (fn [cofx [_ event-handler-id event-from-back]]
-   (js/console.log (str "New event dispatch from back: " (first event-from-back) " " (count (second event-from-back)) " " (take 5 (second event-from-back)) " handled by " event-handler-id))
+   (js/console.log (str "New event dispatch from back: " event-from-back " handled by " event-handler-id))
    (assoc cofx :fx [[:dispatch [event-handler-id event-from-back]]])))
 
 (defn start [url]

@@ -23,7 +23,7 @@
   (rf/clear-subscription-cache!)
   (let [root-el (.getElementById js/document "app")]
     (rdom/unmount-component-at-node root-el) 
-    (rdom/render [dg/entry] #_[layout/ui] root-el)))
+    (rdom/render #_[dg/entry] [p/ui] root-el)))
 
 (defn main []
   (js/console.log "main") 
