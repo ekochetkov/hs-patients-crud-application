@@ -2,7 +2,7 @@
   (:require
    ["rc-easyui" :refer [Layout LayoutPanel DataGrid GridColumn LinkButton Dialog Form TextBox DateBox SearchBox MaskedBox ComboBox FormField ButtonGroup]]
    [reagent.core :as r]
-   [clojure.string :refer [trim replace blank?]]
+   [clojure.string :refer [trim replace blank? join]]
    [frontend.modules :as rfm]
    [common.patients]
    [clojure.string :refer [trim replace blank?]]  
@@ -59,6 +59,9 @@
     (map (fn [row]
            (assoc (:resource row)
                   "uuid" (:uuid row)
+                  "policy_number" (->> (partition-all 4 (get-in row [:resource "policy_number"]))
+                                       (map #(join %))
+                                       (join " "))
                   "birth_date" (ts->human-date (get-in row [:resource "birth_date"])))))))
 
 (defn- filter-data [pattern data]
@@ -105,11 +108,11 @@
 
     {:caption "Delete" :class :LinkButton :iconCls "icon-cancel" :style {:margin "5px"}
      :disabled (not selection)
-     :onClick #(rf/dispatch [:frontend.patients.dialog-delete/show-dialog :delete])}
+     :onClick #(rf/dispatch [:frontend.patients.dialog-delete/show-dialog])}
 
     {:caption "Update" :class :LinkButton :iconCls "icon-edit" :style {:margin "5px"}
      :disabled (not selection)
-     :onClick #(rf/dispatch [:frontend.patients/show-dialog :update])}
+     :onClick #(rf/dispatch [:frontend.patients.dialog-update/show-dialog selection])}
 
     {:class :SearchBox :style {:float "right" :margin "5px" :width "350px"}
      :value filter-text-like
@@ -142,6 +145,6 @@
     [:> GridColumn {:width "30px"  :title "#" :align "center"  :render #(inc (.-rowIndex %))}]
     [:> GridColumn {:width "250px" :title "Patient name" :field "patient_name"}]
     [:> GridColumn {:width "120px" :title "Birth date" :align "center" :field "birth_date"}]
-    [:> GridColumn {:width "70px" :title "Gender" :field "gender"}]
-    [:> GridColumn {:width "50%" :title "Address" :field "address"}]
-    [:> GridColumn {:width "50%"  :title "Policy number" :field "policy_number"}]]]))
+    [:> GridColumn {:width "70px"  :title "Gender" :field "gender"}]
+    [:> GridColumn {:width "180px" :title "Policy number" :align "center" :field "policy_number"}]
+    [:> GridColumn {:width "100%"  :title "Address" :field "address"}]]]))

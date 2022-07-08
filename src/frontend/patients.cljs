@@ -9,7 +9,7 @@
    [frontend.patients.datagrid :as datagrid]
 ;   [frontend.patients.filter-panel :as filter-panel]
    [frontend.patients.dialog-create :as dialog-create]
-;   [frontend.patients.dialog-update :as dialog-update]
+   [frontend.patients.dialog-update :as dialog-update]
    [frontend.patients.dialog-delete :as dialog-delete]
    [frontend.comm :as comm]
    [frontend.patients.models :as models]
@@ -18,7 +18,7 @@
 (def init-state {:show-dialog nil
                  :. {:datagrid datagrid/init-state
 ;;                     :filter-panel filter-panel/init-state
-;;                     :dialog-update dialog-update/init-state                     
+                     :dialog-update dialog-update/init-state
                      :dialog-create dialog-create/init-state
                      :dialog-delete dialog-delete/init-state
                      }})
@@ -54,7 +54,8 @@
 
    [:> LayoutPanel {:region "center" :style {:height "100%"}}
     [datagrid/entry]
-    [dialog-create/entry models/Patient]
     [dialog-delete/entry selection]
+    [dialog-create/entry models/Patient]
+    [dialog-update/entry models/Patient]
                   ]
    ]))
