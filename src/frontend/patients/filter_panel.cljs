@@ -23,9 +23,6 @@
         (update-in state (drop-last full-path) dissoc (last full-path))
         (assoc-in state full-path value)))))
 
-(rf/reg-event-db ::reset-filters
-  #(assoc % :filters {}))
-
 (defmulti filter->where-cond
   (fn [k _] k))
 
@@ -43,28 +40,31 @@
 
 (defmethod filter->where-cond :birth-date
   [_ {:keys [mode start end]}]
-    (case mode
-      :equal   [:=  "birth_date" start]
-      :after   [:=> "birth_date" start]
-      :before  [:=< "birth_date" start]
-      :between [:between "birth_date" start end]))
+    (let [dt->ts #(/ (.getTime %) 1000)]
+      (case mode
+        :equal   [:=  "birth_date" (dt->ts start)]
+        :after   [:=> "birth_date" (dt->ts start)]
+        :before  [:=< "birth_date" (dt->ts start)]
+        :between [:between "birth_date" (dt->ts start) (dt->ts end)])))
   
 (defn- build-where-by-filters [filters]
   (->> filters
        (mapv (fn [[k v]] (filter->where-cond k v)))))
 
+(rf/reg-event-fx ::reset-filters
+   (fn [cofx]
+     (-> cofx
+        (assoc-in [:db :filters] {})
+        (assoc :fx [[:dispatch [:frontend.patients.datagrid/update-where []]]]))))
+
+
 (rf/reg-event-fx ::apply-filters
   (fn [cofx]
     (let [filters (get-in cofx [:db :filters])
           where (build-where-by-filters filters)]
-      (js/console.log "where" (str where))
-      cofx)))
+      (assoc cofx :fx
+        [[:dispatch [:frontend.patients.datagrid/update-where where]]]))))
       
-;    (assoc cofx :fx
-;       [[:dispatch [::datagrid/start-loading]]
-;        [:dispatch [::comm/send-event ::datagrid/read [:patients/read {} 0 0]]]])))
-
-
 (defn entry []
   (let [state @(rf/subscribe [::state])
         {:keys [patient-name
@@ -76,7 +76,6 @@
          birth-date-start :start
          birth-date-end   :end} birth-date
         input-style {:width "100%"}]
-    
     [:div {:style {:padding "10px"}}
 
      [:p {:style {:font-weight (when (not (blank? patient-name)) "bold")}}

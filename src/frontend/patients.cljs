@@ -24,12 +24,6 @@
                          
 (reg-sub ::state #(-> %))
 
-(rf/reg-event-fx ::datagrid-reload
-  (fn [cofx]
-    (assoc cofx :fx
-       [[:dispatch [::datagrid/start-loading]]
-        [:dispatch [::comm/send-event ::datagrid/read [:patients/read {} 0 0]]]])))
-
 (defn ui []
   (let [state @(rf/subscribe [::state])
         selection (get-in state [:. :datagrid :selection])]

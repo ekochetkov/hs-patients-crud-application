@@ -9,12 +9,14 @@
    [frontend.rf-isolate-ns :as rf-ns]
    [frontend.rf-nru-nwd :as rf-nru-nwd :refer [reg-sub]]   
 ;   [frontend.patients :refer [ui-patients-model]]
-   [frontend.patients.models :as models]   
+   [frontend.patients.models :as models]
+   [frontend.comm :as comm]
    [re-frame.core :as rf :refer [trim-v]]))
 
 (def init-state {:filter-text-like nil
                  :selection nil                 
                  :loading false
+                 :where []
                  :data []
                  :total 50
                  :pageSize 50
@@ -28,11 +30,21 @@
           row (first (filter #(= (:uuid %) uuid) (:data state)))]
       (assoc state :selection row))))
 
-(rf/reg-event-db ::start-loading
-  #(assoc % :loading true))
-
 (rf/reg-event-db ::update-filter-text-like
   (fn [state [_ value]] (assoc state :filter-text-like value)))
+
+(rf/reg-event-fx ::update-where
+  (fn [cofx [_ where]]
+     (-> cofx
+         (assoc-in [:db :where] where)
+         (assoc :fx [[:dispatch [::datagrid-reload]]]))))
+
+(rf/reg-event-fx ::datagrid-reload
+  (fn [cofx]
+    (let [where (get-in cofx [:db :where])]
+      (-> cofx
+        (assoc-in [:db :loading] true)
+        (assoc :fx [[:dispatch [::comm/send-event ::read [:patients/read where 0 0]]]])))))
 
 ;; Receive data from back
 (rf/reg-event-db ::read
@@ -104,7 +116,7 @@
      :onClick #(rf/dispatch [:frontend.patients.dialog-create/show-dialog])}
     
     {:caption "Reload" :class :LinkButton :iconCls "icon-reload" :style {:margin "5px"}
-     :onClick #(rf/dispatch [:frontend.patients/datagrid-reload])}
+     :onClick #(rf/dispatch [::datagrid-reload])}
 
     {:caption "Delete" :class :LinkButton :iconCls "icon-cancel" :style {:margin "5px"}
      :disabled (not selection)
