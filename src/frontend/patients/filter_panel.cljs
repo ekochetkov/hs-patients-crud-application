@@ -7,163 +7,139 @@
    [common.patients]
    [clojure.string :refer [trim replace blank?]]  
    [frontend.rf-isolate-ns :as rf-ns]
-   [frontend.rf-nru-nwd :as rf-nru-nwd]   
+   [frontend.rf-nru-nwd :as rf-nru-nwd :refer [reg-sub]]   
 ;   [frontend.patients :refer [ui-patients-model]]
    [frontend.patients.models :as models]   
    [re-frame.core :as rf]))
 
-(def init-state {})
+(def init-state {:filters {}})
 
-(rf/reg-sub :patients/remote-where
-  #(get-in % [:patients :remote-where]))
-                    
-(rf/reg-sub :patients/remote-filters
-  #(get-in % [:patients :remote-filters]))
+(reg-sub ::state #(-> %))
 
-(rf/reg-event-db :patients/reset-remote-filters
-  (fn [app-state _]
-     (assoc-in app-state [:patients :remote-filters] {})))
+(rf/reg-event-db ::update-filters
+  (fn [state [_ field-path value]]
+    (let [full-path (concat [:filters] field-path)]
+      (if (blank? value)
+        (update-in state (drop-last full-path) dissoc (last full-path))
+        (assoc-in state full-path value)))))
 
-(rf/reg-event-db :patients/apply-remote-filters
-                 (fn [app-state _]
-                   (let [remote-filters (get-in app-state [:patients :remote-filters])
-                         patient-name (:patient-name remote-filters)
-                         address (:address remote-filters)
-                         gender (:gender remote-filters)
-                         policy-number (:policy-number remote-filters)
-                         birth-date (:birth-date remote-filters)
-                         birth-date-start (:birth-date-start remote-filters)
-                         birth-date-end (:birth-date-end remote-filters)]
-;                     (js/console.log "rf" (str remote-filters))
-                     (assoc-in app-state [:patients :remote-where] (cond-> []
-                       patient-name (conj [:like "patient_name" (str "%" patient-name "%")])
-                       address (conj [:like :address (str "%" address "%")])
-                       policy-number (conj [:= "policy_number" policy-number ])
-                       gender (conj [:= :gender (gender {:male "male" :female "female"})])
-                                    birth-date (conj (case birth-date
-                                                       :equal   [:=  :birth-date birth-date-start]
-                                                       :after   [:=> :birth-date birth-date-start]
-                                                       :before  [:=< :birth-date birth-date-start]
-                                                       :between [:between :birth-date
-                                                                          birth-date-start
-                                                                 birth-date-end]))))
-                     )
+(rf/reg-event-db ::reset-filters
+  #(assoc % :filters {}))
 
-                   )
-                 
-                 )
+(defmulti filter->where-cond
+  (fn [k _] k))
 
+(defmethod filter->where-cond :patient-name
+  [_ v] [:like "patient_name" (str "%" v "%")])
 
-(rf/reg-event-db :patietns/update-remote-filters
-  (fn [app-state [_ [field value]]]
-;     (js/console.log "update-remote-filters" field value (blank? value) (type value))
-;     (js/console.log "dissoc" (str (dissoc (get-in app-state [:patients :remote-filters]) field)))
-     
-    (cond-> app-state
+(defmethod filter->where-cond :address
+  [_ v] [:like "address" (str "%" v "%")])
+
+(defmethod filter->where-cond :policy-number
+  [_ v] [:= "policy_number" v])
+
+(defmethod filter->where-cond :gender
+  [_ v] [:= "gender" (v {:male "male" :female "female"})])
+
+(defmethod filter->where-cond :birth-date
+  [_ {:keys [mode start end]}]
+    (case mode
+      :equal   [:=  "birth_date" start]
+      :after   [:=> "birth_date" start]
+      :before  [:=< "birth_date" start]
+      :between [:between "birth_date" start end]))
+  
+(defn- build-where-by-filters [filters]
+  (->> filters
+       (mapv (fn [[k v]] (filter->where-cond k v)))))
+
+(rf/reg-event-fx ::apply-filters
+  (fn [cofx]
+    (let [filters (get-in cofx [:db :filters])
+          where (build-where-by-filters filters)]
+      (js/console.log "where" (str where))
+      cofx)))
       
-       (blank? value)
-          (assoc-in [:patients :remote-filters]
-            (dissoc (get-in app-state [:patients :remote-filters]) field))
-
-       (and (blank? value) (= field :birth-date))
-          (assoc-in [:patients :remote-filters]
-            (dissoc (get-in app-state [:patients :remote-filters]) field
-               :birth-date-start :birth-date-end))
-         
-       (not (blank? value))
-         (assoc-in [:patients :remote-filters field] value)
-
-)))
+;    (assoc cofx :fx
+;       [[:dispatch [::datagrid/start-loading]]
+;        [:dispatch [::comm/send-event ::datagrid/read [:patients/read {} 0 0]]]])))
 
 
-(defn filter-layout-panel-content []
-  (let [input-style {:width "100%"}
-        remote-filters (rf/subscribe [:patients/remote-filters])
-        bd-mode (:birth-date @remote-filters)]
-;(js/console.log "where" (str @(rf/subscribe [:patients/remote-where])))
+(defn entry []
+  (let [state @(rf/subscribe [::state])
+        {:keys [patient-name
+                address
+                policy-number
+                gender
+                birth-date]} (:filters state)
+        {birth-date-mode  :mode
+         birth-date-start :start
+         birth-date-end   :end} birth-date
+        input-style {:width "100%"}]
     
     [:div {:style {:padding "10px"}}
 
-    [:p "Patient name contains:"]
+     [:p {:style {:font-weight (when (not (blank? patient-name)) "bold")}}
+      "Patient name contains:"]
      [:> TextBox {:style input-style
-                  :value (:patient-name @remote-filters)
-                  :onChange #(rf/dispatch
-                                [:patietns/update-remote-filters [:patient-name %]])
-                  }]
+                  :value patient-name
+                  :onChange #(rf/dispatch [::update-filters [:patient-name] %])}]
 
-    [:p "Adress contains:"]
+     [:p {:style {:font-weight (when (not (blank? address)) "bold")}}
+      "Address contains:"]
      [:> TextBox {:style input-style
-                  :value (:address @remote-filters)
-                  :onChange #(rf/dispatch
-                                [:patietns/update-remote-filters [:address %]])
+                  :value address
+                  :onChange #(rf/dispatch [::update-filters [:address] %])}]
 
-                  }]
-
-    [:p "Policy number equal:"]
+     [:p {:style {:font-weight (when (not (blank? policy-number)) "bold")}}
+      "Policy number equal:"]
      [:> TextBox {:style input-style
-                  :value (:policy-number @remote-filters)
-                  :onChange #(rf/dispatch
-                               [:patietns/update-remote-filters [:policy-number %]])
-                  }]
+                  :value policy-number
+                  :onChange #(rf/dispatch[::update-filters [:policy-number] %])}]
 
-
-     [:p {:style {:font-weight (when (not (blank? (:gender @remote-filters) )) "bold")}}
-
+     [:p {:style {:font-weight (when (not (blank? gender)) "bold")}}
       "Gender:"]
+     
     [:> ButtonGroup {:selectionMode "single"}
-     [:> LinkButton {:selected (nil? (:gender @remote-filters))
-                     :onClick #(rf/dispatch
-                                [:patietns/update-remote-filters [:gender nil]])} "Any"]
-     [:> LinkButton {:selected (= :male (:gender @remote-filters))
-                     :onClick #(rf/dispatch
-                                [:patietns/update-remote-filters [:gender :male]])}  "Male"]
-     [:> LinkButton {:selected (= :female (:gender @remote-filters))
-                     :onClick #(rf/dispatch
-                                [:patietns/update-remote-filters [:gender :female]])} "Female"]]
+     [:> LinkButton {:selected (nil? gender)
+                     :onClick #(rf/dispatch [::update-filters [:gender] nil])} "Any"]
+     [:> LinkButton {:selected (= :male gender)
+                     :onClick #(rf/dispatch [::update-filters [:gender] :male])}  "Male"]
+     [:> LinkButton {:selected (= :female gender)
+                     :onClick #(rf/dispatch [::update-filters [:gender] :female])} "Female"]]
 
-     [:p {:style {:font-weight (when (not (blank? bd-mode)) "bold")}}
-                  "Birth date:"]
+     [:p {:style {:font-weight (when (not (blank? birth-date)) "bold")}}
+      "Birth date:"]
+     
     [:> ButtonGroup {:selectionMode "single"}
-     [:> LinkButton {:selected (nil? bd-mode)
-                     :onClick #(rf/dispatch
-                                [:patietns/update-remote-filters [:birth-date nil]])} "Any"]
-     [:> LinkButton {:selected (= bd-mode :equal)
-                     :onClick #(rf/dispatch
-                                [:patietns/update-remote-filters [:birth-date :equal]])} "Equal"]
-     [:> LinkButton {:onClick #(rf/dispatch
-                                [:patietns/update-remote-filters [:birth-date :after]])} "After"]
-     [:> LinkButton {:onClick #(rf/dispatch
-                                [:patietns/update-remote-filters [:birth-date :before]])} "Before"]
-     [:> LinkButton {:onClick #(rf/dispatch
-                                [:patietns/update-remote-filters [:birth-date :between]])}"Between"]]
+     [:> LinkButton {:selected (nil? birth-date-mode)
+                     :onClick #(rf/dispatch [::update-filters [:birth-date] nil])} "Any"]
+     [:> LinkButton {:selected (= birth-date-mode :equal)
+                     :onClick #(rf/dispatch [::update-filters [:birth-date :mode] :equal])} "Equal"]
+     [:> LinkButton {:selected (= birth-date-mode :after)
+                     :onClick #(rf/dispatch [::update-filters [:birth-date :mode] :after])} "After"]
+     [:> LinkButton {:selected (= birth-date-mode :before)
+                     :onClick #(rf/dispatch [::update-filters [:birth-date :mode] :before])} "Before"]
+     [:> LinkButton {:selected (= birth-date-mode :between)
+                     :onClick #(rf/dispatch [::update-filters [:birth-date :mode] :between])}"Between"]]
 
-     (when (some #(= bd-mode %) '(:equal :after :before :between))
-       [:p (when (= bd-mode :between) "Start: ")
+     (when (some #(= birth-date-mode %) '(:equal :after :before :between))
+       [:p (when (= birth-date-mode :between) "Start: ")
         [:> DateBox {:style input-style
-                     :value (:birth-date-start @remote-filters)
-                     :onChange #(rf/dispatch
-                               [:patietns/update-remote-filters [:birth-date-start %]])
+                     :value birth-date-start
+                     :onChange #(rf/dispatch [::update-filters [:birth-date :start] %])}]])
 
-                     }] ] )
-
-     (when (= bd-mode :between)
-       [:p "End: " [:> DateBox {:style input-style
-
-                     :value (:birth-date-end @remote-filters)
-                     :onChange #(rf/dispatch
-                               [:patietns/update-remote-filters [:birth-date-end %]])
-                                
-
-                                }] ])
-
+     (when (= birth-date-mode :between)
+       [:p "End: "
+        [:> DateBox {:style input-style
+                     :value birth-date-end
+                     :onChange #(rf/dispatch [::update-filters [:birth-date :end] %])}]])
      [:hr]
 
-     [:> LinkButton {:onClick #(rf/dispatch [:patients/reset-remote-filters])} "Reset"]
+     [:> LinkButton {:onClick #(rf/dispatch [::reset-filters])} "Reset"]
      [:> LinkButton {:style {:float "right"}
-                     :onClick #(rf/dispatch [:patients/apply-remote-filters])} "Apply"]
+                     :onClick #(rf/dispatch [::apply-filters])} "Apply"]
 
-     [:p (str @(rf/subscribe [:patients/remote-where])) ]
-          
-    ]
+     [:p (str @(rf/subscribe [::state])) ]]))
 
-    ))
+

@@ -7,7 +7,7 @@
    [frontend.rf-nru-nwd :refer [reg-sub]]
 
    [frontend.patients.datagrid :as datagrid]
-;   [frontend.patients.filter-panel :as filter-panel]
+   [frontend.patients.filter-panel :as filter-panel]
    [frontend.patients.dialog-create :as dialog-create]
    [frontend.patients.dialog-update :as dialog-update]
    [frontend.patients.dialog-delete :as dialog-delete]
@@ -17,11 +17,10 @@
 
 (def init-state {:show-dialog nil
                  :. {:datagrid datagrid/init-state
-;;                     :filter-panel filter-panel/init-state
+                     :filter-panel filter-panel/init-state
                      :dialog-update dialog-update/init-state
                      :dialog-create dialog-create/init-state
-                     :dialog-delete dialog-delete/init-state
-                     }})
+                     :dialog-delete dialog-delete/init-state}})
                          
 (reg-sub ::state #(-> %))
 
@@ -36,13 +35,13 @@
         selection (get-in state [:. :datagrid :selection])]
   [:> Layout {:style {"width" "100%" "height" "100%"}}
 
-       #_[:> LayoutPanel {:region "west"
+       [:> LayoutPanel {:region "west"
                         :title "Patients filters"
                         :collapsible true
                         :expander true
-                        :style {:width "300px"}}
+                        :style {:width "305px"}}
 
-;        [filter-layout-panel-content]
+        [filter-panel/entry]
         ]
 
 ;   [:> LayoutPanel {:region "south"} (str @(rf/subscribe [:patients/remote-filters]))]
