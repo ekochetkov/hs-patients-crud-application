@@ -18,9 +18,9 @@
                  :loading false
                  :where []
                  :data []
-                 :total 50
-                 :pageSize 50
-                 :pageNumber 1})
+                 :total 0
+                 :page-size 50
+                 :page-number 1})
 
 (reg-sub ::state #(-> %))
 
@@ -37,26 +37,44 @@
   (fn [cofx [_ where]]
      (-> cofx
          (assoc-in [:db :where] where)
-         (assoc :fx [[:dispatch [::datagrid-reload]]]))))
+         (assoc-in [:db :data] [])
+         (assoc-in [:db :page-number] 1)
+         (assoc-in [:db :total] 0)
+         (assoc :fx [[:dispatch [::datagrid-reload]]])
+         )))
 
 (rf/reg-event-fx ::datagrid-reload
   (fn [cofx]
-    (let [where (get-in cofx [:db :where])]
+    (let [{:keys [where page-number page-size]} (:db cofx)]
       (-> cofx
         (assoc-in [:db :loading] true)
-        (assoc :fx [[:dispatch [::comm/send-event ::read [:patients/read where 0 0]]]])))))
+        (assoc :fx [[:dispatch [::comm/send-event ::read [:patients/read where page-number page-size]]]])))))
+
+(rf/reg-event-fx ::on-page-change
+  (fn [cofx [_ page-number page-size]]
+    (-> cofx
+      (assoc-in [:db :page-number] page-number)
+      (assoc-in [:db :page-size] page-size)
+      (assoc :fx [[:dispatch [::datagrid-reload]]]))))
 
 ;; Receive data from back
 (rf/reg-event-db ::read
-  (fn [state [_ [_ data]]]
+  (fn [state [_ [_ [total page-number page-size data]]]]
     (assoc state :data data
+                 :total total
+                 :page-number page-number
+                 :page-size page-size
                  :loading false)))
 
 (defn- on-row-click [row]
   (rf/dispatch [::on-row-click row]))
 
-(defn on-page-change [a b c d]
-  (js/console.log "onPageChange" a b c d))
+(defn on-page-change [event]
+  (js/console.log "onPageChange")
+  (let [page-number (.-pageNumber event)
+        page-size (.-pageSize event)]
+  (rf/dispatch [::on-page-change page-number page-size])
+  ))
 
 (defn- ts->human-date [ts]
   (let [date (new js/Date ts)
@@ -101,6 +119,7 @@
 
 (reg-sub ::data
   (fn [state]
+;    (js/console.log "::data" (count (:data state)))
     (-> (:data state)
          mapping-data-from-back
          ((fn [data]
@@ -125,7 +144,7 @@
     {:caption "Update" :class :LinkButton :iconCls "icon-edit" :style {:margin "5px"}
      :disabled (not selection)
      :onClick #(rf/dispatch [:frontend.patients.dialog-update/show-dialog selection])}
-
+   
     {:class :SearchBox :style {:float "right" :margin "5px" :width "350px"}
      :value filter-text-like
      :onChange #(rf/dispatch [::update-filter-text-like %])}])
@@ -140,7 +159,7 @@
 (defn entry []
   (let [state @(rf/subscribe [::state])
         data @(rf/subscribe [::data])
-        {:keys [selection]} state]
+        {:keys [selection total page-size page-number]} state]
     [:div
      [:> DataGrid {:data data
                    :style {:height "100%"}
@@ -148,13 +167,15 @@
                    :toolbar (partial datagrid-toolbar state)
                    :selection selection
                    :idField "uuid"
-                   :pageSize 50
+                   :pageSize page-size
+                   :total total
+                   :pageNumber page-number
                    :virtualScroll true
                    :lazy true
                    :onPageChange on-page-change
                    :onRowClick on-row-click}
     
-    [:> GridColumn {:width "30px"  :title "#" :align "center"  :render #(inc (.-rowIndex %))}]
+    [:> GridColumn {:width "40px"  :title "#" :align "center"  :render #(inc (.-rowIndex %))}]
     [:> GridColumn {:width "250px" :title "Patient name" :field "patient_name"}]
     [:> GridColumn {:width "120px" :title "Birth date" :align "center" :field "birth_date"}]
     [:> GridColumn {:width "70px"  :title "Gender" :field "gender"}]
