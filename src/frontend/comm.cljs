@@ -20,8 +20,12 @@
 
 (rf/reg-event-fx :comm/receive-event
   (fn [cofx [_ event-handler-id event-from-back]]
-   (js/console.log (str "New event dispatch from back: " event-from-back " handled by " event-handler-id))
-   (assoc cofx :fx [[:dispatch [event-handler-id event-from-back]]])))
+    (js/console.log (str "New event dispatch from back: " event-from-back " handled by " event-handler-id))
+    (if (= (first event-from-back)
+           :comm/error)
+      (assoc cofx :fx [[:dispatch [:comm/error event-from-back]]])
+      (assoc cofx :fx [[:dispatch [event-handler-id event-from-back]]])
+      )))
 
 (defn start [url]
   (rf/dispatch [::wfx/connect socket-id {:url url}]))  
