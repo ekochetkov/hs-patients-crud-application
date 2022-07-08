@@ -7,6 +7,7 @@
                  [http-kit "2.6.0"]
                  [compojure "1.3.4"]
                  [hiccup "1.0.5"]
+                 [re-frame/re-frame "1.2.0"]
                  [migratus/migratus "1.3.5"]
 		 [org.clojure/java.jdbc "0.6.1"]
 		 [org.postgresql/postgresql "9.4-1201-jdbc41"]
