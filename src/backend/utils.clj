@@ -1,7 +1,7 @@
 (ns backend.utils
   (:require
    [backend.context :refer [ctx]]
-   [backend.ws :as ws :refer [process-ws-event]]
+   [backend.ws-events :refer [process-ws-event]]
    [backend.patients-events]   
    [backend.db]
    [clojure.data.json :as json]
