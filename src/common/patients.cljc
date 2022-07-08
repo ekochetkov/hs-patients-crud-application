@@ -10,3 +10,4 @@
    "birth_date" {"required" true}
    "gender" {"required" true}
    "address" {"required" true}})
+   

@@ -48,13 +48,24 @@
         {:deleted (Timestamp/from (Instant/now))} ["uuid = ?::uuid" uuid])))
 
 (defmethod process-ws-event :patients/read
-  [ctx _ [where limit offset]]
+  [ctx _ [where page-number page-size]]
   (let [{db-spec :db-spec} ctx
         base-where [[:= :deleted nil]]
         fields-type-cast {"birth_date" "bigint"}
         resource-where (map (fn [[op field & args]]
                          (into [op (db/pg->> "resource" field (get fields-type-cast field "text"))] args)) where)
-        query {:select [:uuid :resource]
-               :from [:patients]
-               :where (concat [:and] base-where resource-where)}]
-       (jdbc/query db-spec (hsql/format query) {:keywordize? false})))
+        query-data {:select [:uuid :resource]
+                    :from [:patients]
+                    :where (concat [:and] base-where resource-where)
+                    :limit page-size
+                    :offset (* page-size (dec page-number))}
+        query-count {:select [[:%count.*]]
+                     :from [:patients]
+                     :where (concat [:and] base-where resource-where)}]
+    [(->
+        (jdbc/query db-spec (hsql/format query-count) {:keywordize? false})
+        first
+        :count)
+      page-number
+      page-size
+      (jdbc/query db-spec (hsql/format query-data) {:keywordize? false})]))
