@@ -6,9 +6,11 @@
    [re-frame.core :as rf]
    [goog.string :as gstring]
    [websocket-fx.core :as wfx]
-
+   [frontend.rf-nru-nwd :as rf-nru-nwd]
    [frontend.patients :as patients]
    ))
+
+(def init-state {:center "patients"})
 
 (def menu [{:text "Clinic"
             :children [{:id "about"
@@ -23,12 +25,12 @@
 ;            :selection (fn [x] true)
             :on-selection-change (fn [node]
                                    (if-let [id (.-id node)]
-                                     (rf/dispatch [:menu-tree-element-click id])))}])
+                                     (rf/dispatch [::menu-tree-element-click id])))}])
 
-(rf/reg-sub :center #(:center %))
+(rf-nru-nwd/reg-sub ::center #(:center %))
 
 (rf/reg-event-db
- :menu-tree-element-click
+ ::menu-tree-element-click
  (fn [app-state [_ menu-item-id]]
    (js/console.log "click menu" menu-item-id)
    (assoc app-state :center menu-item-id)))
@@ -36,7 +38,7 @@
 
 
 (defn ui []
-  (let [center (rf/subscribe [:center])]
+  (let [center (rf/subscribe [::center])]
     [:> Layout  {:style {"width" "100%" "height" "100%"}}
       [:> LayoutPanel {:region "north" :style {"height" "75px"}}
        [:div {:style {:text-align "center"}}
