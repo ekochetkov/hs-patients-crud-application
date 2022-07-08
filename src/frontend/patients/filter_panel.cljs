@@ -38,14 +38,18 @@
 (defmethod filter->where-cond :gender
   [_ v] [:= "gender" (v {:male "male" :female "female"})])
 
+(defn- js-date->ts-without-tz [js-date]
+  (- (.getTime js-date)
+     (* (.getTimezoneOffset js-date) 60000)))
+
 (defmethod filter->where-cond :birth-date
   [_ {:keys [mode start end]}]
-    (let [dt->ts #(/ (.getTime %) 1000)]
-      (case mode
-        :equal   [:=  "birth_date" (dt->ts start)]
-        :after   [:=> "birth_date" (dt->ts start)]
-        :before  [:=< "birth_date" (dt->ts start)]
-        :between [:between "birth_date" (dt->ts start) (dt->ts end)])))
+    (case mode
+      :equal   [:=  "birth_date" (js-date->ts-without-tz start)]
+      :after   [:>= "birth_date" (js-date->ts-without-tz start)]
+      :before  [:<= "birth_date" (js-date->ts-without-tz start)]
+      :between [:between "birth_date" (js-date->ts-without-tz start)
+                                      (js-date->ts-without-tz end)]))
   
 (defn- build-where-by-filters [filters]
   (->> filters
@@ -138,7 +142,6 @@
      [:> LinkButton {:onClick #(rf/dispatch [::reset-filters])} "Reset"]
      [:> LinkButton {:style {:float "right"}
                      :onClick #(rf/dispatch [::apply-filters])} "Apply"]
-
-     [:p (str @(rf/subscribe [::state])) ]]))
+     ]))
 
 
