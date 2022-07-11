@@ -159,7 +159,7 @@
 (defn entry []
   (let [state @(rf/subscribe [::state])
         data @(rf/subscribe [::data])
-        {:keys [selection total page-size page-number]} state]
+        {:keys [selection total page-size page-number loading]} state]
     [:div
      [:> DataGrid {:data data
                    :style {:height "100%"}
@@ -170,7 +170,10 @@
                    :pageSize page-size
                    :total total
                    :pageNumber page-number
-                   :virtualScroll true
+                   :loading loading
+                   :pagination true
+                   :pagePosition "bottom"
+                   :pageOptions {:layout ["list" "sep" "first" "prev" "sep" "tpl" "sep" "next" "last" "sep" "refresh" "info" "links"]}
                    :lazy true
                    :onPageChange on-page-change
                    :onRowClick on-row-click}
