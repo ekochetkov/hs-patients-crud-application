@@ -16,7 +16,7 @@
    [re-frame.core :as rf]))
 
 (def init-state {:show-dialog nil
-                 :show-filter-panel true
+                 :show-filter-panel false
                  :. {:datagrid datagrid/init-state
                      :filter-panel filter-panel/init-state
                      :dialog-update dialog-update/init-state
@@ -71,7 +71,7 @@
                    :action.filter "Фильтр"
                    :action.delete "Удалить"
                    :action.update "Обновить"
-                   :filter.patient-name "ФИО поциента содержит:"
+                   :filter.patient-name "ФИО пациента содержит:"
                    :filter.address "Адрес содержит:"
                    :filter.gender "Пол:"
                    :filter.gender.any "Любой"  
@@ -79,10 +79,10 @@
                    :filter.gender.female "Женский"                   
                    :filter.policy-number "Полис ОМС:"                   
                    :filter.birth-date "Дата рождения:"
-                   :filter.birth-date.start "Start:"
-                   :filter.birth-date.end "End:"                   
+                   :filter.birth-date.start "От:"
+                   :filter.birth-date.end "До:"                   
                    :filter.birth-date.any "Любая"     
-                   :filter.birth-date.equal "Ровнo"
+                   :filter.birth-date.equal "Точно"
                    :filter.birth-date.after "После"
                    :filter.birth-date.before "До"
                    :filter.birth-date.between "Между"                                      
@@ -90,8 +90,8 @@
                    :filter.apply "Применить"
                    :dialog-create.caption "Добавить"
                    :dialog-create.button-create "Добавить"
-                   :dialog-update.caption "Update patient"
-                   :dialog-update.button-update "Update"                   
+                   :dialog-update.caption "Обновить данные пациента"
+                   :dialog-update.button-update "Сохранить"                   
                    }})
 
 

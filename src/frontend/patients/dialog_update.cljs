@@ -103,7 +103,7 @@
   (let [state @(rf/subscribe [::state])
         closed (:dialog-closed state)]
      [:> Dialog
-      {:title "Update patient"
+      {:title (:dialog-update.caption locale)
        :closed closed
        :modal true
        :onClose on-dialog-close

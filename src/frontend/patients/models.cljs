@@ -1,5 +1,6 @@
 (ns frontend.patients.models
-  (:require [clojure.string :refer [trim replace blank? join]]))
+  (:require [clojure.string :refer [trim replace blank? join]]
+            [frontend.utils :refer [js-date->ts-without-tz]]))
 
 (def locales {:en {:human-date-format "yyyy-MM-dd"}
               :ru {:human-date-format "dd.MM.yyyy"}})
@@ -9,7 +10,7 @@
 (def Patient
   {:converts {"patient_name" {:set trim}
               "address" {:set trim}             
-              "birth_date" {:set #(.getTime %)
+              "birth_date" {:set js-date->ts-without-tz
                             :get #(js/Date. %)}             
               "policy_number" {:set #(-> %
                                 trim
