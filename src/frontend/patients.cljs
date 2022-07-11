@@ -82,7 +82,7 @@
                    :filter.birth-date.start "Start:"
                    :filter.birth-date.end "End:"                   
                    :filter.birth-date.any "Любая"     
-                   :filter.birth-date.equal "Ровна"
+                   :filter.birth-date.equal "Ровнo"
                    :filter.birth-date.after "После"
                    :filter.birth-date.before "До"
                    :filter.birth-date.between "Между"                                      
