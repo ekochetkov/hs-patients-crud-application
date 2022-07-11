@@ -44,20 +44,15 @@
     (assoc-in state [:form-data field-name] value)))
 
 (rf/reg-event-db ::on-validate-form-data
-  (fn [module-state [_ errors]]
+                 (fn [module-state [_ errors]]
+                   (js/console.log "valie" (str module-state))
     (assoc module-state :is-valid-form-data (nil? errors))))
 
-(defn- on-change-form-data [field-name value]
+(defn- on-change-form-data [model field-name value]
   (this-as this
-    (let [set-fn (-> this
-                   (aget "patientModel")
-                   (aget field-name)
-                   (aget "setFn"))
-          new-value (if set-fn
-                      (set-fn value)
-                      value)]
-    (rf/dispatch [::on-change-form-data field-name new-value]))))
-
+    (let [set-fn (get-in model [:converts field-name :set] #(-> %))]
+       (rf/dispatch [::on-change-form-data field-name (set-fn value)]))))
+   
 (defn- on-validate-form-data [errors]
   (rf/dispatch [::on-validate-form-data errors]))
 
@@ -67,20 +62,20 @@
 (defn- on-create-button-click []
   (rf/dispatch [::send-event-create]))
 
-(defn- create-form-field [f-name f-data]
-  (let[{:keys [label rc-input-class rc-input-attrs]} f-data]
-  [:> FormField {:name f-name
+(defn- create-form-field [locale f-name f-data]
+  (let[{:keys [name rc-input-class rc-input-attrs]} f-data]
+  [:> FormField {:name name
                  :labelAlign "right"
-                 :labelWidth "130px"
-                 :label (str label ": ")}
+                 :labelWidth "160px"
+                 :label (str (f-name locale) ": ")}
    [:> (case rc-input-class
          :TextBox TextBox
          :DateBox DateBox
          :ComboBox ComboBox
          :MaskedBox MaskedBox)
-       rc-input-attrs]]))
+       (rc-input-attrs locale) ]]))
 
-(defn- form [state patient-model]
+(defn- form [locale state patient-model]
   (let [form-data (:form-data state)]
     (into [:> Form
             {:errorType "tooltip"
@@ -88,28 +83,29 @@
              :model form-data
              :patientModel patient-model
              :rules common.patients/validation-rules
-             :onChange on-change-form-data
-             :onValidate on-validate-form-data}]
-           (for [[f-name f-data] patient-model]
-                  (create-form-field f-name f-data)))))
+             :onChange (partial on-change-form-data patient-model)
+             :onValidate on-validate-form-data
+             }]
+           (for [[f-name f-data] (:fields patient-model)]
+                  (create-form-field locale f-name f-data)))))
 
-(defn- footer [state]
+(defn- footer [locale state]
   (let [button-create-disabled (:is-valid-form-data state)]
     [:div {:className "dialog-button"}
       [:> LinkButton {:disabled (not button-create-disabled)
                       :onClick on-create-button-click
-                      :style {:width "80px"}} "Create"]]))
+                      :style {:width "80px"}} (:dialog-create.button-create locale)]]))
     
-(defn entry [patient-model]
+(defn entry [locale patient-model]
   (let [state @(rf/subscribe [::state])
         closed (:dialog-closed state)]
     [:> Dialog
-     {:title "Create patient"
+     {:title (:dialog-create.caption locale)
       :closed closed
       :modal true
       :onClose on-dialog-close
       :style {:width "550px"}}
      [:div
       {:style {:padding "30px 20px"} :className "f-full"}
-       [form state patient-model]]
-       [footer state]]))
+       [form locale state patient-model]]
+       [footer locale state]]))

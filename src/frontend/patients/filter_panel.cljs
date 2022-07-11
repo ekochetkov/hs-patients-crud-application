@@ -69,7 +69,7 @@
       (assoc cofx :fx
         [[:dispatch [:frontend.patients.datagrid/update-where where]]]))))
       
-(defn entry []
+(defn entry [locale]
   (let [state @(rf/subscribe [::state])
         {:keys [patient-name
                 address
@@ -83,48 +83,49 @@
     [:div {:style {:padding "10px"}}
 
      [:p {:style {:font-weight (when (not (blank? patient-name)) "bold")}}
-      "Patient name contains:"]
+      (:filter.patient-name locale)]
      [:> TextBox {:style input-style
                   :value patient-name
                   :onChange #(rf/dispatch [::update-filters [:patient-name] %])}]
 
      [:p {:style {:font-weight (when (not (blank? address)) "bold")}}
-      "Address contains:"]
+      (:filter.address locale)]
      [:> TextBox {:style input-style
                   :value address
                   :onChange #(rf/dispatch [::update-filters [:address] %])}]
 
      [:p {:style {:font-weight (when (not (blank? policy-number)) "bold")}}
-      "Policy number equal:"]
-     [:> TextBox {:style input-style
-                  :value policy-number
-                  :onChange #(rf/dispatch[::update-filters [:policy-number] %])}]
+      (:filter.policy-number locale)]
+     [:> MaskedBox {:style input-style
+                    :mask "9999 9999 9999 9999"                    
+                    :value policy-number
+                    :onChange #(rf/dispatch[::update-filters [:policy-number] %])}]
 
      [:p {:style {:font-weight (when (not (blank? gender)) "bold")}}
-      "Gender:"]
+      (:filter.gender locale)]
      
     [:> ButtonGroup {:selectionMode "single"}
      [:> LinkButton {:selected (nil? gender)
-                     :onClick #(rf/dispatch [::update-filters [:gender] nil])} "Any"]
+                     :onClick #(rf/dispatch [::update-filters [:gender] nil])} (:filter.gender.any locale)]
      [:> LinkButton {:selected (= :male gender)
-                     :onClick #(rf/dispatch [::update-filters [:gender] :male])}  "Male"]
+                     :onClick #(rf/dispatch [::update-filters [:gender] :male])} (:filter.gender.male locale)]
      [:> LinkButton {:selected (= :female gender)
-                     :onClick #(rf/dispatch [::update-filters [:gender] :female])} "Female"]]
+                     :onClick #(rf/dispatch [::update-filters [:gender] :female])} (:filter.gender.female locale)]]
 
      [:p {:style {:font-weight (when (not (blank? birth-date)) "bold")}}
-      "Birth date:"]
+      (:filter.birth-date locale)]
      
     [:> ButtonGroup {:selectionMode "single"}
      [:> LinkButton {:selected (nil? birth-date-mode)
-                     :onClick #(rf/dispatch [::update-filters [:birth-date] nil])} "Any"]
+                     :onClick #(rf/dispatch [::update-filters [:birth-date] nil])} (:filter.birth-date.any locale)]
      [:> LinkButton {:selected (= birth-date-mode :equal)
-                     :onClick #(rf/dispatch [::update-filters [:birth-date :mode] :equal])} "Equal"]
+                     :onClick #(rf/dispatch [::update-filters [:birth-date :mode] :equal])} (:filter.birth-date.equal locale)]
      [:> LinkButton {:selected (= birth-date-mode :after)
-                     :onClick #(rf/dispatch [::update-filters [:birth-date :mode] :after])} "After"]
+                     :onClick #(rf/dispatch [::update-filters [:birth-date :mode] :after])} (:filter.birth-date.after locale)]
      [:> LinkButton {:selected (= birth-date-mode :before)
-                     :onClick #(rf/dispatch [::update-filters [:birth-date :mode] :before])} "Before"]
+                     :onClick #(rf/dispatch [::update-filters [:birth-date :mode] :before])} (:filter.birth-date.before locale)]
      [:> LinkButton {:selected (= birth-date-mode :between)
-                     :onClick #(rf/dispatch [::update-filters [:birth-date :mode] :between])}"Between"]]
+                     :onClick #(rf/dispatch [::update-filters [:birth-date :mode] :between])} (:filter.birth-date.between locale)]]
 
      (when (some #(= birth-date-mode %) '(:equal :after :before :between))
        [:p (when (= birth-date-mode :between) "Start: ")
@@ -139,9 +140,9 @@
                      :onChange #(rf/dispatch [::update-filters [:birth-date :end] %])}]])
      [:hr]
 
-     [:> LinkButton {:onClick #(rf/dispatch [::reset-filters])} "Reset"]
+     [:> LinkButton {:onClick #(rf/dispatch [::reset-filters])} (:filter.reset locale)]
      [:> LinkButton {:style {:float "right"}
-                     :onClick #(rf/dispatch [::apply-filters])} "Apply"]
+                     :onClick #(rf/dispatch [::apply-filters])} (:filter.apply locale)]
      ]))
 
 

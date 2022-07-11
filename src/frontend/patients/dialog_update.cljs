@@ -50,16 +50,10 @@
   (fn [module-state [_ errors]]
     (assoc module-state :is-valid-form-data (nil? errors))))
 
-(defn- on-change-form-data [field-name value]
+(defn- on-change-form-data [model field-name value]
   (this-as this
-    (let [set-fn (-> this
-                   (aget "patientModel")
-                   (aget field-name)
-                   (aget "setFn"))
-          new-value (if set-fn
-                      (set-fn value)
-                      value)]
-    (rf/dispatch [::on-change-form-data field-name new-value]))))
+    (let [set-fn (get-in model [:converts field-name :set] #(-> %))]
+       (rf/dispatch [::on-change-form-data field-name (set-fn value)]))))
 
 (defn- on-validate-form-data [errors]
   (rf/dispatch [::on-validate-form-data errors]))
@@ -70,42 +64,42 @@
 (defn- on-update-button-click []
   (rf/dispatch [::send-event-update]))
 
-(defn- create-form-field [f-name f-data f-value]
-  (let[{:keys [label rc-input-class rc-input-attrs get-fn]} f-data]
-   [:> FormField {:name f-name
-                  :labelAlign "right"
-                  :labelWidth "130px"
-                  :label (str label ": ")}
-    [:> (case rc-input-class
-          :TextBox TextBox
-          :DateBox DateBox
-          :ComboBox ComboBox
-          :MaskedBox MaskedBox)
-     (assoc rc-input-attrs :value (if get-fn
-                                   (get-fn f-value)
-                                   f-value))]]))
+(defn- create-form-field [locale model f-name f-data f-value]
+  (let[{:keys [name rc-input-class rc-input-attrs]} f-data
+       get-fn (get-in model [:converts name :get] #(-> %))]
+;    (js/console.log "xx" (str f-name get-fn get-in  (str (get-in model [:converts])))
+  [:> FormField {:name name
+                 :labelAlign "right"
+                 :labelWidth "160px"
+                 :label (str (f-name locale) ": ")}
+   [:> (case rc-input-class
+         :TextBox TextBox
+         :DateBox DateBox
+         :ComboBox ComboBox
+         :MaskedBox MaskedBox)
+    (assoc (rc-input-attrs locale) :value (get-fn f-value)) ]]))
 
-(defn- form [state patient-model]
+(defn- form [locale state patient-model]
   (let [form-data (:form-data state)]
+    (js/console.log "fd" (str patient-model)) 
     (into [:> Form
             {:errorType "tooltip"
              :className "f-full"
              :model form-data
-             :patientModel patient-model
              :rules common.patients/validation-rules
-             :onChange on-change-form-data
+             :onChange (partial on-change-form-data patient-model)
              :onValidate on-validate-form-data}]
-          (for [[f-name f-data] patient-model]
-                 (create-form-field f-name f-data (get form-data f-name))))))
+          (for [[f-name f-data] (:fields patient-model)]
+              (create-form-field locale patient-model f-name f-data (get form-data (:name f-data)))))))
 
-(defn- footer [state]
+(defn- footer [locale state]
   (let [button-update-disabled (:is-valid-form-data state)]
     [:div {:className "dialog-button"}
       [:> LinkButton {:disabled (not button-update-disabled)
                       :onClick on-update-button-click
-                      :style {:width "80px"}} "Update"]]))
+                      :style {:width "80px"}} (:dialog-update.button-update locale)]]))
     
-(defn entry [patient-model]
+(defn entry [locale patient-model]
   (let [state @(rf/subscribe [::state])
         closed (:dialog-closed state)]
      [:> Dialog
@@ -116,5 +110,5 @@
        :style {:width "550px"}}
       [:div
        {:style {:padding "30px 20px"} :className "f-full"}
-        [form state patient-model]]
-        [footer state]]))
+        [form locale state patient-model]]
+        [footer locale state]]))

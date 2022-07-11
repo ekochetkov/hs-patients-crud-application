@@ -20,7 +20,7 @@
 
 (def locale (:en locales))
 
-(def db {:locale-lang :en
+(def db {:locale-lang :ru
          :locale (:ru locales)
          
          :. {:layout l/init-state

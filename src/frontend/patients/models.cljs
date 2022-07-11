@@ -7,36 +7,47 @@
 (def locale (:en locales))
 
 (def Patient
-  {"patient_name" {:label "Patient name"
-                   :set-fn trim
-                   :rc-input-class :TextBox}
+  {:converts {"patient_name" {:set trim}
+              "address" {:set trim}             
+              "birth_date" {:set #(.getTime %)
+                            :get #(js/Date. %)}             
+              "policy_number" {:set #(-> %
+                                trim
+                                (replace " " "")
+                                (replace "_" ""))
+                               :get (fn [v]
+                                         (let [padd (repeat (- 16 (count v)) \_)
+                                               v-with-padd (str v (join padd))]
+                                            (str (->> (partition-all 4 v-with-padd)
+                                               (map #(join %))
+                                               (join " ")))))}}
 
-   "birth_date" {:label "Birth date"
-                 :set-fn #(.getTime %)
-                 :get-fn #(js/Date. %)
-                 :rc-input-class :DateBox    
-                 :rc-input-attrs {:format (:human-date-format locale)}}
    
-   "gender" {:label "Gender"
-             :rc-input-class :ComboBox    
-             :rc-input-attrs {:data [{:value "male" :text "Male"}
-                                     {:value "female" :text "Female"}]}}
-   
-   "address" {:label "Address"
-              :rc-input-class :TextBox
-              :set-fn trim
-              :rc-input-attrs {:multiline true :style {:height "70px"}}}
+   :fields
+  {:patient-name {:name "patient_name"
+                  :rc-input-class :TextBox
+                  :rc-input-attrs (fn [_] {})}
 
-   "policy_number" {:label "Policy_number"
-                    :set-fn #(-> %
-                                 trim
-                                 (replace " " "")
-                                 (replace "_" ""))
-                    :get-fn (fn [v]
-                              (let [padd (repeat (- 16 (count v)) \_)
-                                    v-with-padd (str v (join padd))]
-                              (str (->> (partition-all 4 v-with-padd)
-                                              (map #(join %))
-                                              (join " ")))))
-                    :rc-input-class :MaskedBox
-                    :rc-input-attrs {:mask "9999 9999 9999 9999"}}})
+   :birth-date {:name "birth_date"
+
+                :rc-input-class :DateBox    
+                :rc-input-attrs (fn [locale]
+                                  {:format (:human-date-format locale)})}
+
+;                                   (:human-date-format locale)})}
+   
+   :gender {:name "gender"
+            :rc-input-class :ComboBox    
+            :rc-input-attrs (fn [locale]
+                               {:data [{:value "male" :text (:gender.male locale)}
+                                       {:value "female" :text (:gender.female locale)}]})}
+   
+   :address {:name "address"
+             :rc-input-class :TextBox
+             :rc-input-attrs (fn [locale]
+                                {:multiline true :style {:height "70px"}})}
+
+   :policy-number {:name "policy_number"
+                   :rc-input-class :MaskedBox
+                   :rc-input-attrs (fn [locale]
+                                          {:mask "9999 9999 9999 9999"})}}})

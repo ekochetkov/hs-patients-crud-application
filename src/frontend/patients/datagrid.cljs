@@ -22,6 +22,7 @@
                  :page-size 50
                  :page-number 1})
 
+
 (reg-sub ::state #(-> %))
 
 (rf/reg-event-db ::on-row-click
@@ -130,54 +131,47 @@
                     ((partial highlite-data pattern))))
               data))))))
 
-(defn- toolbar-buttons [{:keys [selection filter-text-like loading]} {:keys [show-filter-panel]}]
-  [{:caption "Add" :class :LinkButton :iconCls "icon-add" :style {:margin "5px"}
+(defn- toolbar-buttons [locale {:keys [selection filter-text-like loading]} {:keys [show-filter-panel]}]
+  [{:caption (:action.add locale) :class :LinkButton :iconCls "icon-add" :style {:margin "5px" :width "100px"}
      :onClick #(rf/dispatch [:frontend.patients.dialog-create/show-dialog])}
     
-   {:caption "Reload" :class :LinkButton :iconCls "icon-reload" :style {:margin "5px"}
+   {:caption (:action.reload locale) :class :LinkButton :iconCls "icon-reload" :style {:margin "5px" :width "100px"}
     :disabled loading
     :onClick #(rf/dispatch [::datagrid-reload])}
 
-   {:caption "Filter" :class :LinkButton :iconCls "icon-filter" :style {:margin "5px"}
+   {:caption (:action.filter locale) :class :LinkButton :iconCls "icon-filter" :style {:margin "5px" :width "100px"}
     :toggle true
     :selected show-filter-panel
     :onClick #(rf/dispatch [:frontend.patients/show-filter-panel])}
    
-    {:caption "Delete" :class :LinkButton :iconCls "icon-cancel" :style {:margin "5px"}
+    {:caption (:action.delete locale) :class :LinkButton :iconCls "icon-cancel" :style {:margin "5px" :width "100px"}
      :disabled (not selection)
      :onClick #(rf/dispatch [:frontend.patients.dialog-delete/show-dialog])}
 
-    {:caption "Update" :class :LinkButton :iconCls "icon-edit" :style {:margin "5px"}
+    {:caption (:action.update locale) :class :LinkButton :iconCls "icon-edit" :style {:margin "5px" :width "100px"}
      :disabled (not selection)
      :onClick #(rf/dispatch [:frontend.patients.dialog-update/show-dialog selection])}
 
-;    {   [:> ButtonGroup {:selectionMode "single"}
-   
-    {:class :SearchBox :style {:float "right" :margin "5px" :width "350px"}
+   {:class :SearchBox :style {:float "right" :margin "5px" :width "350px"}
      :value filter-text-like
      :onChange #(rf/dispatch [::update-filter-text-like %])}])
 
-(defn- datagrid-toolbar [state parent-state]
+(defn- datagrid-toolbar [locale state parent-state]
   (r/as-element (into [:div]
-     (for [tb (toolbar-buttons state parent-state)]
+     (for [tb (toolbar-buttons locale state parent-state)]
         [:> (case (:class tb)
                :LinkButton LinkButton
                :SearchBox SearchBox) tb (:caption tb)]))))
 
-(def locales {:en {:column.patient-name "Patient name"}
-              :ru {:column.patient-name "Имя пациента"}})
-
-(defn entry [parent-state]
-  (let [locale (@(rf/subscribe [:locale-lang]) locales)
-        state @(rf/subscribe [::state])
+(defn entry [locale parent-state]
+  (let [state @(rf/subscribe [::state])
         data @(rf/subscribe [::data])
         {:keys [selection total page-size page-number loading]} state]
-;    (js/console.log (str locale-strings))
     [:div
      [:> DataGrid {:data data
                    :style {:height "100%"}
                    :selectionMode "single"
-                   :toolbar (partial datagrid-toolbar state parent-state)
+                   :toolbar (partial datagrid-toolbar locale state parent-state)
                    :selection selection
                    :idField "uuid"
                    :pageSize page-size
@@ -193,8 +187,12 @@
     
     [:> GridColumn {:width "40px"  :title "#" :align "center"  :render #(inc (.-rowIndex %))}]
     [:> GridColumn {:width "400px" :field "patient_name"
-                    :title (:column.patient-name locale)}]
-    [:> GridColumn {:width "120px" :title "Birth date" :align "center" :field "birth_date"}]
-    [:> GridColumn {:width "70px"  :title "Gender" :field "gender"}]
-    [:> GridColumn {:width "220px" :title "Policy number" :align "center" :field "policy_number"}]
-    [:> GridColumn {:width "100%"  :title "Address" :field "address"}]]]))
+                    :title (:patient-name locale)}]
+    [:> GridColumn {:width "140px" :align "center" :field "birth_date"
+                    :title (:birth-date locale)}]
+    [:> GridColumn {:width "70px"  :field "gender" :align "center"
+                    :title (:gender locale)}]
+    [:> GridColumn {:width "220px" :align "center" :field "policy_number"
+                    :title (:policy-number locale)}]
+    [:> GridColumn {:width "100%"  :field "address"
+                    :title (:address locale) }]]]))
