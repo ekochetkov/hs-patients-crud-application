@@ -130,13 +130,19 @@
                     ((partial highlite-data pattern))))
               data))))))
 
-(defn- toolbar-buttons [{:keys [selection filter-text-like]}]
+(defn- toolbar-buttons [{:keys [selection filter-text-like loading]} {:keys [show-filter-panel]}]
   [{:caption "Add" :class :LinkButton :iconCls "icon-add" :style {:margin "5px"}
      :onClick #(rf/dispatch [:frontend.patients.dialog-create/show-dialog])}
     
-    {:caption "Reload" :class :LinkButton :iconCls "icon-reload" :style {:margin "5px"}
-     :onClick #(rf/dispatch [::datagrid-reload])}
+   {:caption "Reload" :class :LinkButton :iconCls "icon-reload" :style {:margin "5px"}
+    :disabled loading
+    :onClick #(rf/dispatch [::datagrid-reload])}
 
+   {:caption "Filter" :class :LinkButton :iconCls "icon-filter" :style {:margin "5px"}
+    :toggle true
+    :selected show-filter-panel
+    :onClick #(rf/dispatch [:frontend.patients/show-filter-panel])}
+   
     {:caption "Delete" :class :LinkButton :iconCls "icon-cancel" :style {:margin "5px"}
      :disabled (not selection)
      :onClick #(rf/dispatch [:frontend.patients.dialog-delete/show-dialog])}
@@ -149,14 +155,14 @@
      :value filter-text-like
      :onChange #(rf/dispatch [::update-filter-text-like %])}])
 
-(defn- datagrid-toolbar [state]
+(defn- datagrid-toolbar [state parent-state]
   (r/as-element (into [:div]
-     (for [tb (toolbar-buttons state)]
+     (for [tb (toolbar-buttons state parent-state)]
         [:> (case (:class tb)
                :LinkButton LinkButton
                :SearchBox SearchBox) tb (:caption tb)]))))
 
-(defn entry []
+(defn entry [parent-state]
   (let [state @(rf/subscribe [::state])
         data @(rf/subscribe [::data])
         {:keys [selection total page-size page-number loading]} state]
@@ -164,7 +170,7 @@
      [:> DataGrid {:data data
                    :style {:height "100%"}
                    :selectionMode "single"
-                   :toolbar (partial datagrid-toolbar state)
+                   :toolbar (partial datagrid-toolbar state parent-state)
                    :selection selection
                    :idField "uuid"
                    :pageSize page-size

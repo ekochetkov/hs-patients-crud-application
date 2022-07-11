@@ -16,6 +16,7 @@
    [re-frame.core :as rf]))
 
 (def init-state {:show-dialog nil
+                 :show-filter-panel false
                  :. {:datagrid datagrid/init-state
                      :filter-panel filter-panel/init-state
                      :dialog-update dialog-update/init-state
@@ -24,15 +25,27 @@
                          
 (reg-sub ::state #(-> %))
 
+(rf/reg-event-db ::show-filter-panel
+  (fn [state [_ v]]
+    (case v
+      :close (assoc state :show-filter-panel false)
+      :open  (assoc state :show-filter-panel true)
+      nil (assoc state :show-filter-panel
+                 (not (:show-filter-panel state))))))
+    
 (defn ui []
   (let [state @(rf/subscribe [::state])
-        selection (get-in state [:. :datagrid :selection])]
+        selection (get-in state [:. :datagrid :selection])
+        {:keys [show-filter-panel]} state]
   [:> Layout {:style {"width" "100%" "height" "100%"}}
 
        [:> LayoutPanel {:region "west"
                         :title "Patients filters"
                         :collapsible true
                         :expander true
+                        :onExpand #(rf/dispatch [::show-filter-panel :open])
+                        :onCollapse #(rf/dispatch [::show-filter-panel :close])                        
+                        :collapsed (not show-filter-panel)
                         :style {:width "305px"}}
 
         [filter-panel/entry]
@@ -46,7 +59,7 @@
    )
 
    [:> LayoutPanel {:region "center" :style {:height "100%"}}
-    [datagrid/entry]
+    [datagrid/entry state]
     [dialog-delete/entry selection]
     [dialog-create/entry models/Patient]
     [dialog-update/entry models/Patient]
