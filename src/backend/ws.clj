@@ -3,10 +3,9 @@
    [org.httpkit.server :refer [send! as-channel on-receive]]
    [schema.core :as s]
    [clojure.edn]
+   [backend.ws-events :refer [process-ws-event]]
+   [backend.patients-events]
    [clojure.tools.logging :as log]))
-
-(defmulti process-ws-event
-  (fn [_ event-name _] event-name))
 
 (defmethod process-ws-event :default [_ _ _]
   (throw (Exception. "Event not found")))

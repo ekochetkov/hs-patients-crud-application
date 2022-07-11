@@ -2,11 +2,26 @@
   (:require [schema.core :as s]
             [clojure.data.json :as json]
             [clojure.java.jdbc :as jdbc]
-            [backend.ws :refer [process-ws-event]]
-            [common.patients :refer [db-row-schema]]
+            [backend.ws-events :refer [process-ws-event]]
+            [common.patients]
+            [backend.db :as db]
             [honey.sql :as hsql])
   (:import [java.sql Timestamp]
            [java.time Instant]))
+
+(def db-resource-schema
+  {(s/required-key "patient_name") (s/conditional
+          (get-in common.patients/validation-rules ["patient_name" "rule" "validator"]) s/Str)
+   (s/required-key "policy_number") (s/conditional
+          (get-in common.patients/validation-rules ["policy_number" "rule" "validator"]) s/Str)
+   (s/required-key "birth_date") s/Int
+   (s/required-key "gender") (s/enum "male" "female")
+   (s/required-key "address") s/Str})
+
+(def db-row-schema
+  {(s/required-key :uuid) java.util.UUID
+   (s/required-key :deleted) (s/maybe s/Int)
+   (s/required-key :resource) db-resource-schema})
 
 (defmethod process-ws-event :patients/create
   [ctx _ [resource]]
@@ -33,9 +48,24 @@
         {:deleted (Timestamp/from (Instant/now))} ["uuid = ?::uuid" uuid])))
 
 (defmethod process-ws-event :patients/read
-  [ctx _ [uuid modified-fields]]
+  [ctx _ [where page-number page-size]]
   (let [{db-spec :db-spec} ctx
-        query {:select [:uuid :resource]
-               :from [:patients]
-               :where [:= nil]}]
-       (jdbc/query db-spec (hsql/format query) {:keywordize? false})))
+        base-where [[:= :deleted nil]]
+        fields-type-cast {"birth_date" "bigint"}
+        resource-where (map (fn [[op field & args]]
+                         (into [op (db/pg->> "resource" field (get fields-type-cast field "text"))] args)) where)
+        query-data {:select [:uuid :resource]
+                    :from [:patients]
+                    :where (concat [:and] base-where resource-where)
+                    :limit page-size
+                    :offset (* page-size (dec page-number))}
+        query-count {:select [[:%count.*]]
+                     :from [:patients]
+                     :where (concat [:and] base-where resource-where)}]
+    [(->
+        (jdbc/query db-spec (hsql/format query-count) {:keywordize? false})
+        first
+        :count)
+      page-number
+      page-size
+      (jdbc/query db-spec (hsql/format query-data) {:keywordize? false})]))
