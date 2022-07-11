@@ -150,6 +150,8 @@
     {:caption "Update" :class :LinkButton :iconCls "icon-edit" :style {:margin "5px"}
      :disabled (not selection)
      :onClick #(rf/dispatch [:frontend.patients.dialog-update/show-dialog selection])}
+
+;    {   [:> ButtonGroup {:selectionMode "single"}
    
     {:class :SearchBox :style {:float "right" :margin "5px" :width "350px"}
      :value filter-text-like
@@ -162,10 +164,15 @@
                :LinkButton LinkButton
                :SearchBox SearchBox) tb (:caption tb)]))))
 
+(def locales {:en {:column.patient-name "Patient name"}
+              :ru {:column.patient-name "Имя пациента"}})
+
 (defn entry [parent-state]
-  (let [state @(rf/subscribe [::state])
+  (let [locale (@(rf/subscribe [:locale-lang]) locales)
+        state @(rf/subscribe [::state])
         data @(rf/subscribe [::data])
         {:keys [selection total page-size page-number loading]} state]
+;    (js/console.log (str locale-strings))
     [:div
      [:> DataGrid {:data data
                    :style {:height "100%"}
@@ -185,8 +192,9 @@
                    :onRowClick on-row-click}
     
     [:> GridColumn {:width "40px"  :title "#" :align "center"  :render #(inc (.-rowIndex %))}]
-    [:> GridColumn {:width "250px" :title "Patient name" :field "patient_name"}]
+    [:> GridColumn {:width "400px" :field "patient_name"
+                    :title (:column.patient-name locale)}]
     [:> GridColumn {:width "120px" :title "Birth date" :align "center" :field "birth_date"}]
     [:> GridColumn {:width "70px"  :title "Gender" :field "gender"}]
-    [:> GridColumn {:width "180px" :title "Policy number" :align "center" :field "policy_number"}]
+    [:> GridColumn {:width "220px" :title "Policy number" :align "center" :field "policy_number"}]
     [:> GridColumn {:width "100%"  :title "Address" :field "address"}]]]))

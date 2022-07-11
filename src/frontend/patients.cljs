@@ -34,11 +34,30 @@
                  (not (:show-filter-panel state))))))
     
 (defn ui []
-  (let [state @(rf/subscribe [::state])
+  (let [local-lang @(rf/subscribe [:locale-lang])
+        state @(rf/subscribe [::state])
         selection (get-in state [:. :datagrid :selection])
         {:keys [show-filter-panel]} state]
   [:> Layout {:style {"width" "100%" "height" "100%"}}
 
+      [:> LayoutPanel {:region "north" :style {"height" "60px"}}
+       [:div {:style {:text-align "center"}}
+        [:h1 {:style {:margin "10px"}}
+         "Patients CRUD application"]]
+
+       [:> ButtonGroup {:selectionMode "single"
+                        :style {:position "absolute"
+                                :top "15px"
+                                :left "10px"}}
+        
+        [:> LinkButton {:iconCls "en"
+                        :selected (= local-lang :en)
+                        :onClick #(rf/dispatch [:switch-local-lang :en])}]
+        [:> LinkButton {:iconCls "ru"
+                        :selected (= local-lang :ru)
+                        :onClick #(rf/dispatch [:switch-local-lang :ru])}]]]
+   
+   
        [:> LayoutPanel {:region "west"
                         :title "Patients filters"
                         :collapsible true

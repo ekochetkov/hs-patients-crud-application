@@ -37,7 +37,7 @@
     (-> cofx
       (assoc-in [:db :dialog-closed] true)
       (assoc-in [:db :form-data] {})
-      (assoc :fx [[:dispatch [:frontend.patients/datagrid-reload]]]))))
+      (assoc :fx [[:dispatch [:frontend.patients.datagrid/datagrid-reload]]]))))
     
 (rf/reg-event-db ::on-change-form-data
   (fn [state [_ field-name value]]

@@ -12,11 +12,6 @@
    [frontend.rf-nru-nwd :as rf-nru-nwd]
    ))
 
-(def locales {:en {:human-date-format "yyyy-MM-dd"}
-              :ru {:human-date-format "dd.MM.yyyy"}})
-
-(def locale (:en locales))
-
 (rf/reg-global-interceptor (rf-nru-nwd/interceptor :frontend))
 
 (defn ^:dev/after-load mount-root []
