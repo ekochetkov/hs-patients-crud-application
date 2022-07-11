@@ -70,7 +70,7 @@
                    :action.reload "Обновить"
                    :action.filter "Фильтр"
                    :action.delete "Удалить"
-                   :action.update "Обновить"
+                   :action.update "Изименить"
                    :filter.patient-name "ФИО пациента содержит:"
                    :filter.address "Адрес содержит:"
                    :filter.gender "Пол:"

@@ -180,7 +180,8 @@
                    :loading loading
                    :pagination true
                    :pagePosition "bottom"
-                   :pageOptions {:layout ["list" "sep" "first" "prev" "sep" "tpl" "sep" "next" "last" "sep" "refresh" "info" "links"]}
+                   :pageOptions {:layout ["list" "sep" "first" "prev" "sep" "tpl" "sep" "next" "last" "sep" "refresh" "info" "links"]
+                                 :pageList [10 50 100]}
                    :lazy true
                    :onPageChange on-page-change
                    :onRowClick on-row-click}

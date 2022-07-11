@@ -27,10 +27,10 @@
   (fn [k _] k))
 
 (defmethod filter->where-cond :patient-name
-  [_ v] [:like "patient_name" (str "%" v "%")])
+  [_ v] [:ilike "patient_name" (str "%" v "%")])
 
 (defmethod filter->where-cond :address
-  [_ v] [:like "address" (str "%" v "%")])
+  [_ v] [:ilike "address" (str "%" v "%")])
 
 (defmethod filter->where-cond :policy-number
   [_ v] [:= "policy_number" v])
@@ -128,13 +128,13 @@
                      :onClick #(rf/dispatch [::update-filters [:birth-date :mode] :between])} (:filter.birth-date.between locale)]]
 
      (when (some #(= birth-date-mode %) '(:equal :after :before :between))
-       [:p (when (= birth-date-mode :between) "Start: ")
+       [:p (when (= birth-date-mode :between) (:filter.birth-date.start locale))
         [:> DateBox {:style input-style
                      :value birth-date-start
                      :onChange #(rf/dispatch [::update-filters [:birth-date :start] %])}]])
 
      (when (= birth-date-mode :between)
-       [:p "End: "
+       [:p (:filter.birth-date.end locale)
         [:> DateBox {:style input-style
                      :value birth-date-end
                      :onChange #(rf/dispatch [::update-filters [:birth-date :end] %])}]])
