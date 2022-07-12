@@ -131,24 +131,32 @@
                     ((partial highlite-data pattern))))
               data))))))
 
+(defn with-id [id child]
+  [:span {:id id} child])
+
 (defn- toolbar-buttons [locale {:keys [selection filter-text-like loading]} {:keys [show-filter-panel]}]
-  [{:caption (:action.add locale) :class :LinkButton :iconCls "icon-add" :style {:margin "5px" :width "100px"}
-     :onClick #(rf/dispatch [:frontend.patients.dialog-create/show-dialog])}
+  [{:id "patients-datagrid-toolbar-button-add"
+    :caption (:action.add locale) :class :LinkButton :iconCls "icon-add" :style {:margin "5px" :width "100px"}
+    :onClick #(rf/dispatch [:frontend.patients.dialog-create/show-dialog])}
     
-   {:caption (:action.reload locale) :class :LinkButton :iconCls "icon-reload" :style {:margin "5px" :width "100px"}
+   {:id "patients-datagrid-toolbar-button-reload"
+    :caption (:action.reload locale) :class :LinkButton :iconCls "icon-reload" :style {:margin "5px" :width "100px"}
     :disabled loading
     :onClick #(rf/dispatch [::datagrid-reload])}
 
-   {:caption (:action.filter locale) :class :LinkButton :iconCls "icon-filter" :style {:margin "5px" :width "100px"}
+   {:id "patients-datagrid-toolbar-button-filter"
+    :caption (:action.filter locale) :class :LinkButton :iconCls "icon-filter" :style {:margin "5px" :width "100px"}
     :toggle true
     :selected show-filter-panel
     :onClick #(rf/dispatch [:frontend.patients/show-filter-panel])}
    
-    {:caption (:action.delete locale) :class :LinkButton :iconCls "icon-cancel" :style {:margin "5px" :width "100px"}
+   {:id "patients-datagrid-toolbar-button-delete"
+    :caption (:action.delete locale) :class :LinkButton :iconCls "icon-cancel" :style {:margin "5px" :width "100px"}
      :disabled (not selection)
      :onClick #(rf/dispatch [:frontend.patients.dialog-delete/show-dialog])}
 
-    {:caption (:action.update locale) :class :LinkButton :iconCls "icon-edit" :style {:margin "5px" :width "100px"}
+   {:id "patients-datagrid-toolbar-button-update"
+    :caption (:action.update locale) :class :LinkButton :iconCls "icon-edit" :style {:margin "5px" :width "100px"}
      :disabled (not selection)
      :onClick #(rf/dispatch [:frontend.patients.dialog-update/show-dialog selection])}
 
@@ -159,9 +167,10 @@
 (defn- datagrid-toolbar [locale state parent-state]
   (r/as-element (into [:div]
      (for [tb (toolbar-buttons locale state parent-state)]
+       (with-id (:id tb)
         [:> (case (:class tb)
                :LinkButton LinkButton
-               :SearchBox SearchBox) tb (:caption tb)]))))
+               :SearchBox SearchBox) tb (:caption tb)])))))
 
 (defn entry [locale parent-state]
   (let [state @(rf/subscribe [::state])

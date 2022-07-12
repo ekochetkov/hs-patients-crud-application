@@ -7,6 +7,7 @@
                  [http-kit "2.6.0"]
                  [compojure "1.3.4"]
                  [hiccup "1.0.5"]
+                 [etaoin "0.4.6"]
                  [re-frame/re-frame "1.2.0"]
                  [migratus/migratus "1.3.5"]
 		 [org.clojure/java.jdbc "0.6.1"]
