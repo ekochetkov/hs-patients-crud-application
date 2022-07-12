@@ -11,3 +11,11 @@
 (e/get-element-text driver {:id :patients-datagrid-toolbar-button-add})
 
 (e/click driver [{:id :patients-datagrid-toolbar-button-add}])
+
+(e/click driver [{:id :patients-dialog_create-button-create}])
+
+(e/click driver [{:id :patient_name}])
+
+(e/fill driver ".//span[@id='patient_name']//input" "Ivan Ivanovich Ivanov")
+
+(e/fill driver ".//span[@id='patient_name']//input" "Ivan Ivanovich Ivanov")

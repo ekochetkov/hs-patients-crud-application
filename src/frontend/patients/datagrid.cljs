@@ -10,6 +10,7 @@
    [frontend.rf-nru-nwd :as rf-nru-nwd :refer [reg-sub]]   
 ;   [frontend.patients :refer [ui-patients-model]]
    [frontend.patients.models :as models]
+   [frontend.utils :refer [with-id]]
    [frontend.comm :as comm]
    [re-frame.core :as rf :refer [trim-v]]))
 
@@ -130,9 +131,6 @@
                     ((partial filter-data pattern))
                     ((partial highlite-data pattern))))
               data))))))
-
-(defn with-id [id child]
-  [:span {:id id} child])
 
 (defn- toolbar-buttons [locale {:keys [selection filter-text-like loading]} {:keys [show-filter-panel]}]
   [{:id "patients-datagrid-toolbar-button-add"
