@@ -32,4 +32,6 @@
 (defn handler [ctx ring-request]
   (as-channel ring-request
      {:on-receive (fn [ch msg-str]
-        (send! ch (str (ws-process-request ctx msg-str))))}))
+        (send! ch (str (ws-process-request ctx msg-str))))
+      :on-open (fn [ch]
+        (log/info (str "New WS-channel open: " ch)))}))
