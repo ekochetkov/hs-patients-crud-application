@@ -56,9 +56,12 @@ jobs:
           name: main.js
           path: resources/public/js/main.js          
           
-  Build-backend:
+  Pack-application:
     needs: [Test-backend, Build-frontend]
     runs-on: ubuntu-latest
+    env:
+    # TODO: need other way to check envs on jobs 
+      DATABASE_URL: ""    
     steps:
       - uses: actions/checkout@v3
       - name: Install dependencies
