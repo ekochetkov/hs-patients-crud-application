@@ -13,8 +13,7 @@
 		 [org.clojure/java.jdbc "0.6.1"]
 		 [org.postgresql/postgresql "9.4-1201-jdbc41"]
                  [com.github.seancorfield/honeysql "2.2.891"]
-                 [org.clojure/data.json "2.4.0"]
-                 [stylefruits/gniazdo "1.2.1"]]
+                 [org.clojure/data.json "2.4.0"]]
 
   :plugins [ [migratus-lein "0.7.3"] ]
 
