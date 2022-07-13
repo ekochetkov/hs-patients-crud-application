@@ -33,9 +33,15 @@
   (run-server #'app {:port port}))
 
 (defn -main []
-  (println "Entry main")
+
+  (when (nil? (:ws-url ctx))
+    (throw (Exception. "Need env var 'WS_URL'")))
+
+  (when (nil? (:port ctx))
+    (throw (Exception. "Need env var 'PORT'")))
+
   (reset! server-stop-func (run-server #'app {:port (Integer/parseInt (:port ctx))}))
-  (println "Run server on localhost at port: 9009"))
+  (println "Run server on localhost at port: " (:port ctx)))
 
 ;(@server-stop-func)
 ;(-main)
