@@ -21,7 +21,7 @@
    [:link {:href "themes/react.css", :type "text/css", :rel "stylesheet"}]
   [:body
    [:div#app]
-   [:script (str " WS_URL = '" (System/getenv "WS_URL") "'; ")]
+   [:script (str " WS_URL = '" (:ws-url ctx) "'; ")]
    [:script {:src "js/main.js"}]]]]))
 
 (defroutes app
@@ -34,7 +34,7 @@
 
 (defn -main []
   (println "Entry main")
-  (reset! server-stop-func (run-server #'app {:port (Integer/parseInt (System/getenv "PORT"))}))
+  (reset! server-stop-func (run-server #'app {:port (Integer/parseInt (:port ctx))}))
   (println "Run server on localhost at port: 9009"))
 
 ;(@server-stop-func)
