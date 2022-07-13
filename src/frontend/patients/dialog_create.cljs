@@ -7,9 +7,8 @@
    [common.patients]
    [frontend.comm :as comm]   
    [clojure.string :refer [trim replace blank?]]  
-   [frontend.rf-isolate-ns :as rf-ns]
    [frontend.rf-nru-nwd :as rf-nru-nwd :refer [reg-sub]]   
-;   [frontend.patients :refer [ui-patients-model]]
+   [frontend.utils :refer [with-id]]
    [frontend.patients.models :as models]   
    [re-frame.core :as rf]))
 
@@ -64,16 +63,17 @@
 
 (defn- create-form-field [locale f-name f-data]
   (let[{:keys [name rc-input-class rc-input-attrs]} f-data]
-  [:> FormField {:name name
+    (with-id name
+      [:> FormField {:name name
                  :labelAlign "right"
                  :labelWidth "160px"
                  :label (str (f-name locale) ": ")}
-   [:> (case rc-input-class
-         :TextBox TextBox
-         :DateBox DateBox
-         :ComboBox ComboBox
-         :MaskedBox MaskedBox)
-       (rc-input-attrs locale) ]]))
+       [:> (case rc-input-class
+             :TextBox TextBox
+             :DateBox DateBox
+             :ComboBox ComboBox
+             :MaskedBox MaskedBox)
+            (rc-input-attrs locale)]])))
 
 (defn- form [locale state patient-model]
   (let [form-data (:form-data state)]
@@ -92,9 +92,10 @@
 (defn- footer [locale state]
   (let [button-create-disabled (:is-valid-form-data state)]
     [:div {:className "dialog-button"}
-      [:> LinkButton {:disabled (not button-create-disabled)
+     (with-id "patients-dialog_create-button-create"
+       [:> LinkButton {:disabled (not button-create-disabled)
                       :onClick on-create-button-click
-                      :style {:width "80px"}} (:dialog-create.button-create locale)]]))
+                      :style {:width "80px"}} (:dialog-create.button-create locale)])]))
     
 (defn entry [locale patient-model]
   (let [state @(rf/subscribe [::state])
