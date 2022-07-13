@@ -6,7 +6,6 @@
    [frontend.modules :as rfm]
    [common.patients]
    [clojure.string :refer [trim replace blank?]]  
-   [frontend.rf-isolate-ns :as rf-ns]
    [frontend.rf-nru-nwd :as rf-nru-nwd :refer [reg-sub]]   
 ;   [frontend.patients :refer [ui-patients-model]]
    [frontend.patients.models :as models]
