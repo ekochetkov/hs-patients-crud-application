@@ -79,7 +79,7 @@ jobs:
           path: target/hs-patients-crud-0.0.1-SNAPSHOT-standalone.jar
         
   Deploy-to-heroku:
-    needs: [Build-backend]
+    needs: [Pack-application]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
