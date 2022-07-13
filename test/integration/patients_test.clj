@@ -9,11 +9,13 @@
 (def chrome-host (System/getenv "CHROME_HOST"))
 (def chrome-url  (System/getenv "CHROME_URL"))
 
-(when (nil? chrome-host)
-  (throw (Exception. "Need env var 'CHROME_HOST'")))
+;; TODO: use leiningen test selector mechanism
+;;       for check only in integration testing stage
+;;(when (nil? chrome-host)
+;;  (throw (Exception. "Need env var 'CHROME_HOST'")))
 
-(when (nil? chrome-url)
-  (throw (Exception. "Need env var 'CHROME_URL'")))
+;;(when (nil? chrome-url)
+;;  (throw (Exception. "Need env var 'CHROME_URL'")))
 
 (deftest ^:integration dialog-create-all-fields-empty-button-disabled
   (let [driver (e/chrome {:host chrome-host})]
