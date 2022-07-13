@@ -6,12 +6,16 @@
             [integration.utils :as u]
             [clojure.string :as s]))
 
-(def chrome-host (or (System/getenv "CHROME_HOST")
-                     "127.0.0.1"))
-(def chrome-url  (or (System/getenv "CHROME_URL")
-                     "http://localhost:9009"))
+(def chrome-host (System/getenv "CHROME_HOST"))
+(def chrome-url  (System/getenv "CHROME_URL"))
 
-(deftest dialog-create-all-fields-empty-button-disabled
+(when (nil? chrome-host)
+  (throw (Exception. "Need env var 'CHROME_HOST'")))
+
+(when (nil? chrome-url)
+  (throw (Exception. "Need env var 'CHROME_URL'")))
+
+(deftest ^:integration dialog-create-all-fields-empty-button-disabled
   (let [driver (e/chrome {:host chrome-host})]
     (e/go driver chrome-url)
     (e/click driver [{:id :patients-datagrid-toolbar-button-add}])
