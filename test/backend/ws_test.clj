@@ -1,7 +1,8 @@
 (ns backend.ws-test
   (:require
-    [backend.ws :as ws :refer [process-ws-event]]
-    [clojure.test :refer [deftest is]]))
+   [backend.ws :as ws]
+   [backend.ws-events :refer [process-ws-event]]
+   [clojure.test :refer [deftest is]]))
 
 (defmethod process-ws-event :echo
   [_ _ event-args] event-args)

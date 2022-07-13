@@ -61,8 +61,8 @@
 
 ;; Receive data from back
 (rf/reg-event-db ::read
-  (fn [state [_ [_ [total page-number page-size data]]]]
-    (assoc state :data data
+  (fn [state [_ [_ {:keys [total page-number page-size rows]}]]]
+    (assoc state :data rows
                  :total total
                  :page-number page-number
                  :page-size page-size
