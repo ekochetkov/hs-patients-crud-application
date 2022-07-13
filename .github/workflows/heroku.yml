@@ -22,7 +22,37 @@ jobs:
         with:
           name: main.js
           path: resources/public/js/main.js
-        
+          
+  Test-backend:
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: aidbox/db:12.1.1-PRO.RC1
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+        - 5432:5432
+    env:
+      DATABASE_URL: "jdbc:postgresql://127.0.0.1:5432/clinic?user=postgres&password=postgres"
+    steps:
+    - uses: actions/checkout@v3
+    - name: Create database for tests
+      env:
+        PGPASSWORD: postgres
+      run: |
+        sudo apt-get update
+        sudo apt install -y postgresql-client
+        psql -h 127.0.0.1 -p 5432 -U postgres -c "create database clinic"
+      
+    - name: Install dependencies
+      run: lein deps
+
+    - name: Migrate database schema
+      run: lein migratus
+      
+    - name: Run tests
+      run: lein test
+          
   Build-backend:
     needs: [Build-frontend]
     runs-on: ubuntu-latest
@@ -34,7 +64,8 @@ jobs:
         with:
           name: main.js
           path: resources/public/js/
-      - name: Compile backend
+    
+      - name: Pack application
         run: lein uberjar
       - uses: actions/upload-artifact@master
         with:
@@ -58,3 +89,23 @@ jobs:
         env:
           HEROKU_API_KEY: ${{secrets.HEROKU_API_KEY}}
         run: heroku deploy:jar hs-patients-crud-0.0.1-SNAPSHOT-standalone.jar --app demo-patients-crud
+        
+  Integraion-tests:
+    needs: [Deploy-to-heroku]
+    runs-on: ubuntu-latest
+    services:
+      db:
+        image: robcherry/docker-chromedriver:latest
+        env:
+          CHROMEDRIVER_WHITELISTED_IPS : ''
+        ports:
+        - 9515:9515
+    env:
+      CHROME_HOST: "127.0.0.1:9515"
+      CHROME_URL: "https://demo-patients-crud.herokuapp.com/"
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install dependencies
+        run: lein deps
+      - name: Run tests
+        run: lein test :integration
