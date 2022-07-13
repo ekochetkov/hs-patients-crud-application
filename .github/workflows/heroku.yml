@@ -18,6 +18,9 @@ jobs:
         - 5432:5432
     env:
       DATABASE_URL: "jdbc:postgresql://127.0.0.1:5432/clinic?user=postgres&password=postgres"
+      # TODO: use leiningen test selector mechanism
+      CHROME_HOST: ''
+      CHROME_URL: ''
     steps:
     - uses: actions/checkout@v3
     - name: Create database for tests
