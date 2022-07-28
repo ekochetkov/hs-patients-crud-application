@@ -36,6 +36,9 @@ jobs:
         with:
           cli: 1.11.1.1149
 
+      - name: Download app deps
+        run: clojure -P
+
       - name: Migrate database schema
         run: clojure -X:migrate "{:store :database :db \"$DATABASE_URL\"}"
 
@@ -79,6 +82,9 @@ jobs:
         uses: DeLaGuardo/setup-clojure@9.3
         with:
           cli: 1.11.1.1149
+
+      - name: Download app deps
+        run: clojure -P
 
       - name: Pack application
         run: clojure -X:uberjar
