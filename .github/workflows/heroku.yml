@@ -146,4 +146,4 @@ jobs:
         env:
           SELENIUM_GRID_HUB_URL: "http://127.0.0.1:4445/wd/hub"
           SELENIUM_GRID_BROWSER: "firefox"
-        run: clojure -X:integration-testg
+        run: clojure -X:integration-test
