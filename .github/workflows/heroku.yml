@@ -1,4 +1,3 @@
----
 name: Clojure CI to Heroku (preprod)
 
 on:
