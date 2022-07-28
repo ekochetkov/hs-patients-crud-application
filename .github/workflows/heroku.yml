@@ -23,6 +23,9 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Test output env var
+        run: printenv "DATABASE_URL"
+
       - name: Create database for tests
         env:
           PGPASSWORD: postgres
