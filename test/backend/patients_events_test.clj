@@ -8,8 +8,6 @@
    [clojure.java.jdbc :as jdbc]
    [clojure.test :refer [deftest is]]))
 
-
-
 (defn- clear-table-patients [{db-spec :db-spec}]
   (jdbc/execute! db-spec "delete from patients"))
 

@@ -32,7 +32,7 @@
 (defn run-server-at-port [port]
   (run-server #'app {:port port}))
 
-(defn -main []
+(defn -main [& _]
 
   (when (nil? (:ws-url ctx))
     (throw (Exception. "Need env var 'WS_URL'")))
