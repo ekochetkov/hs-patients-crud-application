@@ -37,7 +37,7 @@
 
   ;; clj -X:migrate "{:store :database :db \"$DATABASE_URL\"}"
   :migrate
-  {:extra-deps {io.github.yogthos/migratus {:sha "5f3d947d79dc5ecfcc32ffdbca516e81de8b968a"} :git/tag "v1.3.8"}
+  {:extra-deps {io.github.yogthos/migratus {:sha "5f3d947d79dc5ecfcc32ffdbca516e81de8b968a" :git/tag "v1.3.8"}}
    :main-opts ["-m" "migratus.core"]
    :exec-fn migratus.core/migrate}
 
