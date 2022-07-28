@@ -1,11 +1,15 @@
 (ns backend.patients-events-test
   (:require
    [backend.context :refer [ctx]]
-   [backend.ws :as ws :refer [process-ws-event]]
+   [backend.ws :as ws]
+   [backend.ws-events :refer [process-ws-event]]   
    [backend.patients-events]
    [backend.db]
    [clojure.java.jdbc :as jdbc]
    [clojure.test :refer [deftest is]]))
+
+(when (nil? (:db-spec ctx))
+  (throw (Exception. "Need env var 'DATABASE_URL'")))
 
 (defn- clear-table-patients [{db-spec :db-spec}]
   (jdbc/execute! db-spec "delete from patients"))
@@ -107,13 +111,13 @@
         uuid-1 (process-ws-event ctx :patients/create [resource])
         uuid-2 (process-ws-event ctx :patients/create [resource])
         uuid (process-ws-event ctx :patients/delete [uuid-2])
-        response (ws/ws-process-request ctx (str {:data [:patients/read]}))]
+        response (ws/ws-process-request ctx (str {:data [:patients/read [] 1 10]}))]
 
     (when (= (-> response :data first) :comm/error)
       (throw (Exception. (str response))))
-
+    
     (is (= (count-table-patients ctx) 2))
-    (is (= (count (-> response :data second)) 1))))
+    (is (= (-> response :data second :total) 1))))
 
 (deftest positive-read-filter-like-patient-name
   (clear-table-patients ctx)
@@ -129,16 +133,17 @@
                     "patient_name" "Jack Jackson"
                     "policy_number" "5492505115922541"}
         uuid-2 (process-ws-event ctx :patients/create [resource-2])
-        response (ws/ws-process-request ctx (str {:data [:patients/read [[:like "patient_name" "%Mor%" ]]]}))]
+        response (ws/ws-process-request ctx (str {:data [:patients/read [[:like "patient_name" "%Mor%" ]]
+                                                                        1 10]}))]
 
     (when (= (-> response :data first) :comm/error)
       (throw (Exception. (str response))))
 
     (is (= (:resource (get-by-id ctx uuid-1))
-           (:resource (first (-> response :data second)))))
+           (:resource (first (-> response :data second :rows)))))
 
     (is (= (count-table-patients ctx) 2))
-    (is (= (count (-> response :data second)) 1))))
+    (is (= (-> response :data second :total) 1))))
 
 (deftest positive-read-filter-like-address
   (clear-table-patients ctx)
@@ -154,13 +159,13 @@
                     "patient_name" "Jack Jackson"
                     "policy_number" "5492505115922541"}
         uuid-2 (process-ws-event ctx :patients/create [resource-2])
-        response (ws/ws-process-request ctx (str {:data [:patients/read [[:like "address" "%upo%" ]]]}))]
+        response (ws/ws-process-request ctx (str {:data [:patients/read [[:like "address" "%upo%" ]] 1 10]}))]
 
     (when (= (-> response :data first) :comm/error)
       (throw (Exception. (str response))))
 
     (is (= (count-table-patients ctx) 2))
-    (is (= (count (-> response :data second)) 2))))
+    (is (= (-> response :data second :total) 2))))
 
 (deftest positive-read-filter-birth-date-eq
   (clear-table-patients ctx)
@@ -176,16 +181,18 @@
                     "patient_name" "Jack Jackson"
                     "policy_number" "5492505115922541"}
         uuid-2 (process-ws-event ctx :patients/create [resource-2])
-        response (ws/ws-process-request ctx (str {:data [:patients/read [[:= "birth_date" 1656892800]]]}))]
+        response (ws/ws-process-request ctx (str {:data [:patients/read
+                                                         [[:= "birth_date" 1656892800]]
+                                                         1 10]}))]
 
     (when (= (-> response :data first) :comm/error)
       (throw (Exception. (str response))))
 
     (is (= (:resource (get-by-id ctx uuid-2))
-           (:resource (first (-> response :data second)))))
+           (:resource (first (-> response :data second :rows)))))
 
-    (is (= (count-table-patients ctx) 2))
-    (is (= (count (-> response :data second)) 1))))
+    (is (= (-> response :data second :total) 1)))
+    (is (= (count-table-patients ctx) 2)))
 
 (deftest positive-read-filter-birth-date-after
   (clear-table-patients ctx)
@@ -201,14 +208,14 @@
                     "patient_name" "Jack Jackson"
                     "policy_number" "5492505115922541"}
         uuid-2 (process-ws-event ctx :patients/create [resource-2])
-        response (ws/ws-process-request ctx (str {:data [:patients/read [[:> "birth_date" 1656892810]]]}))]
+        response (ws/ws-process-request ctx (str {:data [:patients/read [[:> "birth_date" 1656892810]] 1 10]}))]
 
     (when (= (-> response :data first) :comm/error)
       (throw (Exception. (str response))))
 
     (is (= (:resource (get-by-id ctx uuid-1))
-           (:resource (first (-> response :data second)))))
+           (:resource (first (-> response :data second :rows)))))
 
     (is (= (count-table-patients ctx) 2))
-    (is (= (count (-> response :data second)) 1))))
+    (is (= (-> response :data second :total) 1))))
 

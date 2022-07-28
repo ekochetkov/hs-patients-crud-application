@@ -62,10 +62,7 @@
         query-count {:select [[:%count.*]]
                      :from [:patients]
                      :where (concat [:and] base-where resource-where)}]
-    [(->
-        (jdbc/query db-spec (hsql/format query-count) {:keywordize? false})
-        first
-        :count)
-      page-number
-      page-size
-      (jdbc/query db-spec (hsql/format query-data) {:keywordize? false})]))
+    {:total (-> (jdbc/query db-spec (hsql/format query-count)) first :count)
+     :page-number page-number
+     :page-size page-size
+     :rows (jdbc/query db-spec (hsql/format query-data) {:keywordize? false})}))

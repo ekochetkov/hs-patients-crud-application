@@ -27,5 +27,10 @@
       (assoc cofx :fx [[:dispatch [event-handler-id event-from-back]]])
       )))
 
+(rf/reg-event-db ::log-echo
+  (fn [_ event] (js/console.log (str event))))
+
 (defn start [url]
-  (rf/dispatch [::wfx/connect socket-id {:url url}]))  
+  (rf/dispatch [::wfx/connect socket-id {:url url
+                                         :on-connect [::log-echo "on-connect"]
+                                         :on-disconnect [::log-echo "on-disconnect"]}]))
