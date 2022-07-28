@@ -1,3 +1,4 @@
+---
 name: Clojure CI to Heroku (preprod)
 
 on:
@@ -134,12 +135,12 @@ jobs:
 
       - name: Test in Chrome
         env:
-          - SELENIUM_GRID_HUB_URL: "http://127.0.0.1:4444/wd/hub"
-          - SELENIUM_GRID_BROWSER: "chrome"
+          SELENIUM_GRID_HUB_URL: "http://127.0.0.1:4444/wd/hub"
+          SELENIUM_GRID_BROWSER: "chrome"
         run: clojure -X:integration-test
 
       - name: Test in Firefox
         env:
-          - SELENIUM_GRID_HUB_URL: "http://127.0.0.1:4445/wd/hub"
-          - SELENIUM_GRID_BROWSER: "firefox"
+          SELENIUM_GRID_HUB_URL: "http://127.0.0.1:4445/wd/hub"
+          SELENIUM_GRID_BROWSER: "firefox"
         run: clojure -X:integration-testg
