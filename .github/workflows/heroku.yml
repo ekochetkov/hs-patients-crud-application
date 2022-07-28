@@ -90,8 +90,8 @@ jobs:
 
       - uses: actions/upload-artifact@master
         with:
-          name: foo.jar
-          path: target/hs-patients-crud-0.0.1-SNAPSHOT-standalone.jar
+          name: app.jar
+          path: target/app.jar
 
   Deploy-to-heroku:
     needs: [Pack-application]
@@ -107,14 +107,12 @@ jobs:
 
       - uses: actions/download-artifact@v3
         with:
-          name: foo.jar
+          name: app.jar
 
       - name: Deploy to Heroku
         env:
           HEROKU_API_KEY: ${{secrets.HEROKU_API_KEY}}
-        run: >
-          heroku deploy:jar hs-patients-crud-0.0.1-SNAPSHOT-standalone.jar
-          --app demo-patients-crud
+        run: heroku deploy:jar app.jar --app demo-patients-crud
 
   Acceptence-test:
     needs: [Deploy-to-heroku]
