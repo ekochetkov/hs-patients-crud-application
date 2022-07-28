@@ -40,7 +40,8 @@ jobs:
         run: clojure -P
 
       - name: Migrate database schema
-        run: clojure -X:migrate "{:store :database :db \"$DATABASE_URL\"}"
+        run: >
+          clojue -X:migrate "{:store :database :db \"`printenv DATABASE_URL`\"}"
 
       - name: Migrate database schema
         run: clojure -X:backend-test
