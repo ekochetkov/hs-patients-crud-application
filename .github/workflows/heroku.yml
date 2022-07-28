@@ -42,7 +42,7 @@ jobs:
       - name: Migrate database schema
         run: >
           clojure -X:migrate
-           "{:store :database :db \"`printenv DATABASE_URL`\"}"
+          "{:store :database :db \"`printenv DATABASE_URL`\"}"
 
       - name: Migrate database schema
         run: clojure -X:backend-test
@@ -117,7 +117,7 @@ jobs:
           HEROKU_API_KEY: ${{secrets.HEROKU_API_KEY}}
         run: >
           heroku deploy:jar hs-patients-crud-0.0.1-SNAPSHOT-standalone.jar
-           --app demo-patients-crud
+          --app demo-patients-crud
 
   Acceptence-test:
     needs: [Deploy-to-heroku]
