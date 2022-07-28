@@ -42,7 +42,9 @@ jobs:
       - name: Migrate database schema
         run: >
           clojure -X:migrate
-          "{:store :database :db \"`printenv DATABASE_URL`\"}"
+          "{:store :database
+          :db \"jdbc:postgresql://127.0.0.1:5432/clinic?user=postgres
+          &password=postgres\"}"
 
       - name: Migrate database schema
         run: clojure -X:backend-test
