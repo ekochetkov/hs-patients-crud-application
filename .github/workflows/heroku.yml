@@ -18,9 +18,6 @@ jobs:
         - 5432:5432
     env:
       DATABASE_URL: "jdbc:postgresql://127.0.0.1:5432/clinic?user=postgres&password=postgres"
-      # TODO: use leiningen test selector mechanism
-      CHROME_HOST: ''
-      CHROME_URL: ''
     steps:
     - uses: actions/checkout@v3
     - name: Create database for tests
@@ -30,15 +27,17 @@ jobs:
         sudo apt-get update
         sudo apt install -y postgresql-client
         psql -h 127.0.0.1 -p 5432 -U postgres -c "create database clinic"
-      
-    - name: Install dependencies
-      run: lein deps
+
+    - name: Install clojure tools
+      uses: DeLaGuardo/setup-clojure@9.3
+      with:
+          cli: 1.11.1.1149
 
     - name: Migrate database schema
-      run: lein migratus
-      
-    - name: Run tests
-      run: lein test
+      run: clojure -X:migrate "{:store :database :db \"$DATABASE_URL\"}"
+
+    - name: Migrate database schema
+      run: clojure -X:backend-test
 
   Build-frontend:
     runs-on: ubuntu-latest
@@ -59,9 +58,6 @@ jobs:
   Pack-application:
     needs: [Test-backend, Build-frontend]
     runs-on: ubuntu-latest
-    env:
-    # TODO: need other way to check envs on jobs 
-      DATABASE_URL: ""    
     steps:
       - uses: actions/checkout@v3
       - name: Install dependencies
@@ -70,9 +66,12 @@ jobs:
         with:
           name: main.js
           path: resources/public/js/
-    
+    - name: Install clojure tools
+      uses: DeLaGuardo/setup-clojure@9.3
+      with:
+          cli: 1.11.1.1149
       - name: Pack application
-        run: lein uberjar
+        run: clojure -X:uberjar
       - uses: actions/upload-artifact@master
         with:
           name: foo.jar
@@ -96,22 +95,36 @@ jobs:
           HEROKU_API_KEY: ${{secrets.HEROKU_API_KEY}}
         run: heroku deploy:jar hs-patients-crud-0.0.1-SNAPSHOT-standalone.jar --app demo-patients-crud
         
-  Integraion-tests:
+  Acceptence-test:
     needs: [Deploy-to-heroku]
     runs-on: ubuntu-latest
-    services:
-      db:
-        image: robcherry/docker-chromedriver:latest
-        env:
-          CHROMEDRIVER_WHITELISTED_IPS : ''
-        ports:
-        - 9515:9515
     env:
-      CHROME_HOST: "127.0.0.1:9515"
-      CHROME_URL: "https://demo-patients-crud.herokuapp.com/"
+      APP_URL: "https://demo-patients-crud.herokuapp.com/"
+    services:
+      chrome:
+        image: selenium/standalone-chrome:103.0
+        ports:
+        - 4444:4444
+      firefox:
+        image: selenium/standalone-firefox:103.0
+        ports:
+        - 4445:4444
     steps:
       - uses: actions/checkout@v3
-      - name: Install dependencies
-        run: lein deps
-      - name: Run tests
-        run: lein test :integration
+
+      - name: Install clojure tools
+        uses: DeLaGuardo/setup-clojure@9.3
+        with:
+           cli: 1.11.1.1149
+
+      - name: Test in Chrome
+         env:
+           - SELENIUM_GRID_HUB_URL: "http://127.0.0.1:4444/wd/hub"
+           - SELENIUM_GRID_BROWSER: "chrome"
+         run: clojure -X:integration-test
+
+      - name: Test in Firefox
+         env:
+           - SELENIUM_GRID_HUB_URL: "http://127.0.0.1:4445/wd/hub"
+           - SELENIUM_GRID_BROWSER: "firefox"
+         run: clojure -X:integration-testg
