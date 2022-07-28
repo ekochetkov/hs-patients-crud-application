@@ -23,8 +23,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Test output env var
-        run: printenv "DATABASE_URL"
+      # - name: Test output env var
+      #  run: printenv "DATABASE_URL"
 
       - name: Create database for tests
         env:
@@ -42,8 +42,8 @@ jobs:
       - name: Download app deps
         run: clojure -P
 
-      - name: Migrate database schema
-        run: clojure -M:migrate
+      # - name: Migrate database schema
+      #  run: clojure -M:migrate
 
       - name: Migrate database schema
         run: clojure -X:backend-test
