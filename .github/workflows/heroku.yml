@@ -1,10 +1,11 @@
+---
 name: Clojure CI to Heroku (preprod)
 
 on:
-#  push:
-#    branches: [ "master" ]
+  #  push:
+  #    branches: [ "master" ]
   pull_request:
-    branches: [ "master" ]
+    branches: ["master"]
 
 jobs:
   Test-backend:
@@ -15,29 +16,31 @@ jobs:
         env:
           POSTGRES_PASSWORD: postgres
         ports:
-        - 5432:5432
+          - 5432:5432
     env:
-      DATABASE_URL: "jdbc:postgresql://127.0.0.1:5432/clinic?user=postgres&password=postgres"
+      DATABASE_URL: >
+        "jdbc:postgresql://127.0.0.1:5432/clinic?user=postgres&password=postgres"
     steps:
-    - uses: actions/checkout@v3
-    - name: Create database for tests
-      env:
-        PGPASSWORD: postgres
-      run: |
-        sudo apt-get update
-        sudo apt install -y postgresql-client
-        psql -h 127.0.0.1 -p 5432 -U postgres -c "create database clinic"
+      - uses: actions/checkout@v3
 
-    - name: Install clojure tools
-      uses: DeLaGuardo/setup-clojure@9.3
-      with:
+      - name: Create database for tests
+        env:
+          PGPASSWORD: postgres
+        run: |
+          sudo apt-get update
+          sudo apt install -y postgresql-client
+          psql -h 127.0.0.1 -p 5432 -U postgres -c "create database clinic"
+
+      - name: Install clojure tools
+        uses: DeLaGuardo/setup-clojure@9.3
+        with:
           cli: 1.11.1.1149
 
-    - name: Migrate database schema
-      run: clojure -X:migrate "{:store :database :db \"$DATABASE_URL\"}"
+      - name: Migrate database schema
+        run: clojure -X:migrate "{:store :database :db \"$DATABASE_URL\"}"
 
-    - name: Migrate database schema
-      run: clojure -X:backend-test
+      - name: Migrate database schema
+        run: clojure -X:backend-test
 
   Build-frontend:
     runs-on: ubuntu-latest
@@ -46,37 +49,45 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: '14'
+
       - name: Install shadow-cljs and deps
         run: npm install -g shadow-cljs & npm install react rc-easyui
+
       - name: Compile frontend
         run: shadow-cljs release dev
+
       - uses: actions/upload-artifact@v3
         with:
           name: main.js
-          path: resources/public/js/main.js          
-          
+          path: resources/public/js/main.js
+
   Pack-application:
     needs: [Test-backend, Build-frontend]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - name: Install dependencies
         run: lein deps
+
       - uses: actions/download-artifact@v3
         with:
           name: main.js
           path: resources/public/js/
-    - name: Install clojure tools
-      uses: DeLaGuardo/setup-clojure@9.3
-      with:
+
+      - name: Install clojure tools
+        uses: DeLaGuardo/setup-clojure@9.3
+        with:
           cli: 1.11.1.1149
+
       - name: Pack application
         run: clojure -X:uberjar
+
       - uses: actions/upload-artifact@master
         with:
           name: foo.jar
           path: target/hs-patients-crud-0.0.1-SNAPSHOT-standalone.jar
-        
+
   Deploy-to-heroku:
     needs: [Pack-application]
     runs-on: ubuntu-latest
@@ -85,16 +96,21 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: '14'
+
       - name: Install Heroku-cli and deps
         run: npm install -g heroku && heroku plugins:install java
+
       - uses: actions/download-artifact@v3
         with:
           name: foo.jar
+
       - name: Deploy to Heroku
         env:
           HEROKU_API_KEY: ${{secrets.HEROKU_API_KEY}}
-        run: heroku deploy:jar hs-patients-crud-0.0.1-SNAPSHOT-standalone.jar --app demo-patients-crud
-        
+        run: >
+          heroku deploy:jar hs-patients-crud-0.0.1-SNAPSHOT-standalone.jar
+           --app demo-patients-crud
+
   Acceptence-test:
     needs: [Deploy-to-heroku]
     runs-on: ubuntu-latest
@@ -104,27 +120,27 @@ jobs:
       chrome:
         image: selenium/standalone-chrome:103.0
         ports:
-        - 4444:4444
+          - 4444:4444
       firefox:
         image: selenium/standalone-firefox:103.0
         ports:
-        - 4445:4444
+          - 4445:4444
     steps:
       - uses: actions/checkout@v3
 
       - name: Install clojure tools
         uses: DeLaGuardo/setup-clojure@9.3
         with:
-           cli: 1.11.1.1149
+          cli: 1.11.1.1149
 
       - name: Test in Chrome
-         env:
-           - SELENIUM_GRID_HUB_URL: "http://127.0.0.1:4444/wd/hub"
-           - SELENIUM_GRID_BROWSER: "chrome"
-         run: clojure -X:integration-test
+        env:
+          - SELENIUM_GRID_HUB_URL: "http://127.0.0.1:4444/wd/hub"
+          - SELENIUM_GRID_BROWSER: "chrome"
+        run: clojure -X:integration-test
 
       - name: Test in Firefox
-         env:
-           - SELENIUM_GRID_HUB_URL: "http://127.0.0.1:4445/wd/hub"
-           - SELENIUM_GRID_BROWSER: "firefox"
-         run: clojure -X:integration-testg
+        env:
+          - SELENIUM_GRID_HUB_URL: "http://127.0.0.1:4445/wd/hub"
+          - SELENIUM_GRID_BROWSER: "firefox"
+        run: clojure -X:integration-testg
