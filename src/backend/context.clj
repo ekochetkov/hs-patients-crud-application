@@ -6,9 +6,3 @@
 
 (when (nil? (:db-spec ctx))
   (throw (Exception. "Need env var 'DATABASE_URL'")))
-
-(println "-------")
-(doall
-(for [c (:db-spec ctx)]
-  (println ">" c "<")))
-(println "-------")
