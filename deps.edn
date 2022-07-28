@@ -35,11 +35,9 @@
                :jar "app.jar"
                :main-class backend.core}}
 
-  ;; clj -X:migrate "{:store :database :db \"$DATABASE_URL\"}"
   :migrate
-  {:extra-deps {io.github.yogthos/migratus {:sha "5f3d947d79dc5ecfcc32ffdbca516e81de8b968a" :git/tag "v1.3.8"}}
-   :main-opts ["-m" "migratus.core"]
-   :exec-fn migratus.core/migrate}
+  {:extra-deps {com.github.paulbutcher/clj-migratus {:git/tag "v1.0.3" :git/sha "46a3ac1"}}
+   :main-opts ["-m" "clj-migratus" "migrate"]}
 
   :backend-test
   {:extra-paths ["test"]
