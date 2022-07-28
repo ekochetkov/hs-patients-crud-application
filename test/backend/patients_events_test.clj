@@ -8,6 +8,9 @@
    [clojure.java.jdbc :as jdbc]
    [clojure.test :refer [deftest is]]))
 
+(when (nil? (:db-spec ctx))
+  (throw (Exception. "Need env var 'DATABASE_URL'")))
+
 (defn- clear-table-patients [{db-spec :db-spec}]
   (jdbc/execute! db-spec "delete from patients"))
 

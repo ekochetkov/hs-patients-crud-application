@@ -40,6 +40,9 @@
   (when (nil? (:port ctx))
     (throw (Exception. "Need env var 'PORT'")))
 
+  (when (nil? (:db-spec ctx))
+    (throw (Exception. "Need env var 'DATABASE_URL'")))
+  
   (reset! server-stop-func (run-server #'app {:port (Integer/parseInt (:port ctx))}))
   (println "Run server on localhost at port: " (:port ctx)))
 
