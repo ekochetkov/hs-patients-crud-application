@@ -32,7 +32,7 @@
   {:replace-deps {com.github.seancorfield/depstar {:mvn/version "2.1.303"}}
    :exec-fn hf.depstar/uberjar
    :exec-args {:aot true
-               :jar "app.jar"
+               :jar "target/app.jar"
                :main-class backend.core}}
 
   :migrate
