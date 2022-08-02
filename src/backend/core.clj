@@ -27,6 +27,7 @@
 (defroutes app
   (GET "/" [] index-page)
   (GET "/ws" [] (partial ws/handler ctx))
+  (GET "/health" [] "ok")
   (resources "/"))
 
 (defn run-server-at-port [port]
