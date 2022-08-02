@@ -114,7 +114,7 @@ jobs:
           rollbackonhealthcheckfailed: true
 
   Acceptence-test:
-    needs: [Deploy-to-heroku]
+    needs: [Deploy-to-heroku-as-image]
     runs-on: ubuntu-latest
     env:
       APP_URL: "https://demo-patients-crud.herokuapp.com/"
