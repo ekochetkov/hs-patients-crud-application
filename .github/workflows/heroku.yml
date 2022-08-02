@@ -112,6 +112,7 @@ jobs:
           healthcheck: "https://demo-patients-crud.herokuapp.com/health"
           checkstring: "ok"
           rollbackonhealthcheckfailed: true
+          delay: 15
 
   Acceptence-test:
     needs: [Deploy-to-heroku-as-image]
