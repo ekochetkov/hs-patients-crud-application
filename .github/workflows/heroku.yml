@@ -93,26 +93,25 @@ jobs:
           name: app.jar
           path: target/app.jar
 
-  Deploy-to-heroku:
+  Deploy-to-heroku-as-image:
     needs: [Pack-application]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
-        with:
-          node-version: '14'
-
-      - name: Install Heroku-cli and deps
-        run: npm install -g heroku && heroku plugins:install java
-
       - uses: actions/download-artifact@v3
         with:
           name: app.jar
 
       - name: Deploy to Heroku
-        env:
-          HEROKU_API_KEY: ${{secrets.HEROKU_API_KEY}}
-        run: heroku deploy:jar app.jar --app demo-patients-crud
+        uses: akhileshns/heroku-deploy@v3.12.12
+        with:
+          heroku_api_key: ${{secrets.HEROKU_API_KEY}}
+          heroku_app_name: "demo-patients-crud"
+          heroku_email: ${{secrets.HEROKU_EMAIL}}
+          usedocker: true
+          healthcheck: "https://demo-patients-crud.herokuapp.com/health"
+          checkstring: "ok"
+          rollbackonhealthcheckfailed: true
 
   Acceptence-test:
     needs: [Deploy-to-heroku]
