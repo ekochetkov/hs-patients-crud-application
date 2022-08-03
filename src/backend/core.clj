@@ -7,6 +7,7 @@
    [compojure.route :refer [resources]]
    [hiccup.core :as hp]
    [clojure.edn]
+   [clojure.java.jdbc :as jdbc]
    [schema.core :as schema]
    [backend.ws :as ws]))
 
@@ -24,9 +25,17 @@
    [:script (str " WS_URL = '" (:ws-url ctx) "'; ")]
    [:script {:src "js/main.js"}]]]]))
 
+(defn health [ctx _]
+  (try
+    (jdbc/query (:db-spec ctx) "select version()")
+    "ok"
+    (catch Exception e
+      "fail")))
+
 (defroutes app
   (GET "/" [] index-page)
   (GET "/ws" [] (partial ws/handler ctx))
+  (GET "/health" [] (partial health ctx))
   (resources "/"))
 
 (defn run-server-at-port [port]
