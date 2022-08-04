@@ -23,7 +23,9 @@
                      :dialog-create dialog-create/init-state
                      :dialog-delete dialog-delete/init-state}})
 
-(def locales {:en {:human-date-format "MM/dd/yyyy"
+(def locales {:en {:datagrid {:displayMsg "Displaying {from} to {to} of {total} items"
+                              :loadMsg "Processing... Please wait"}
+                   :human-date-format "MM/dd/yyyy"
                    :gender.male "Male"
                    :gender.female "Female"                   
                    :patient-name "Patient name"
@@ -61,7 +63,9 @@
                                    :text "Delete patient"
                                    :yes "Yes"
                                    :no "No"}}
-              :ru {:human-date-format "dd.MM.yyyy"
+              :ru {:datagrid {:displayMsg "Показаны записи с {from} по {to}. Всего {total}."
+                              :loadMsg "Обработка... Пожалуйста, подождите"}
+                   :human-date-format "dd.MM.yyyy"
                    :gender.male "Мужской"
                    :gender.female "Женский"
                    :patient-name "ФИО пациента"

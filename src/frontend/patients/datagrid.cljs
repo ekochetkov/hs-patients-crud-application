@@ -164,6 +164,7 @@
   (let [state @(rf/subscribe [::state])
         data (:data state)
         {:keys [selection total page-size page-number loading]} state]
+    (js/console.log "laf" (get-in locale [:datagrid :loadMsg]))
     [:div
      [:> DataGrid {:data (data-view data (:filter-text-like state) locale)
                    :style {:height "100%"}
@@ -175,9 +176,11 @@
                    :total total
                    :pageNumber page-number
                    :loading loading
+                   :defaultLoadMsg (get-in locale [:datagrid :loadMsg])
                    :pagination true
                    :pagePosition "bottom"
                    :pageOptions {:layout ["list" "sep" "first" "prev" "sep" "tpl" "sep" "next" "last" "sep" "refresh" "info" "links"]
+                                 :displayMsg (get-in locale [:datagrid :displayMsg])
                                  :pageList [10 50 100]}
                    :lazy true
                    :onPageChange on-page-change
