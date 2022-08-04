@@ -9,7 +9,7 @@
    [frontend.rf-nru-nwd :as rf-nru-nwd :refer [reg-sub]]   
 ;   [frontend.patients :refer [ui-patients-model]]
    [frontend.patients.models :as models]
-   [frontend.utils :refer [with-id]]
+   [frontend.utils :refer [with-id ts->human-date]]
    [frontend.comm :as comm]
    [re-frame.core :as rf :refer [trim-v]]))
 
@@ -40,8 +40,7 @@
          (assoc-in [:db :data] [])
          (assoc-in [:db :page-number] 1)
          (assoc-in [:db :total] 0)
-         (assoc :fx [[:dispatch [::datagrid-reload]]])
-         )))
+         (assoc :fx [[:dispatch [::datagrid-reload]]]))))
 
 (rf/reg-event-fx ::datagrid-reload
   (fn [cofx]
@@ -73,12 +72,7 @@
   (js/console.log "onPageChange")
   (let [page-number (.-pageNumber event)
         page-size (.-pageSize event)]
-  (rf/dispatch [::on-page-change page-number page-size])
-  ))
-
-(defn- ts->human-date [ts format]
-  (let [date (new js/Date ts)]
-     (.formatDate dateHelper date format)))
+  (rf/dispatch [::on-page-change page-number page-size])))
 
 (defn- mapping-data-from-back [locale data]
   (->> data

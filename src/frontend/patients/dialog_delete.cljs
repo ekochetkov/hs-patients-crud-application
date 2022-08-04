@@ -5,8 +5,11 @@
    [clojure.string :refer [trim replace blank?]]
    [frontend.modules :as rfm]
    [common.patients]
+   [goog.string :as gstring]
+   [goog.string.format]
    [frontend.comm :as comm]   
-   [clojure.string :refer [trim replace blank?]]  
+   [clojure.string :refer [trim replace blank?]]
+   [frontend.utils :refer [ts->human-date]]   
    [frontend.rf-nru-nwd :as rf-nru-nwd :refer [reg-sub]]   
    [frontend.patients.models :as models]   
    [re-frame.core :as rf]))
@@ -34,14 +37,6 @@
 (rf/reg-event-db ::close-dialog
   #(assoc % :dialog-closed true))
 
-(defn- ts->human-date [ts]
-  (let [date (new js/Date ts)
-        y (.getFullYear date)
-        m (inc (.getMonth date))
-        d (.getDate date)]
-    (str y "-" (when (< m 10) "0") m  
-           "-" (when (< d 10) "0") d )))
-
 (defn- on-dialog-close []
   (rf/dispatch [::close-dialog]))
 
@@ -51,20 +46,23 @@
 (defn- on-click-no []
   (rf/dispatch [::close-dialog]))
 
-(defn entry [selection locale]
+(defn entry [selection {:keys [dialog-delete human-date-format]}]
   (let [state @(rf/subscribe [::state])
-        closed (:dialog-closed state)]
+        closed (:dialog-closed state)
+        
+        ]
       [:> Dialog
         {:closed closed
          :onClose on-dialog-close
-         :title (:caption locale)
+         :title (:caption dialog-delete)
          :modal true}
         [:div {:style {:padding "30px 20px"} :className "f-full"}
-         [:p (str (:text locale) ": " (get-in selection [:resource "patient_name"])
-                                 " (" (ts->human-date (get-in selection [:resource "birth_date"])) ")?")]]
-
+         [:p (gstring/format "%s: %s (%s)?"
+               (:text dialog-delete)      
+               (get-in selection [:resource "patient_name"])
+               (ts->human-date (get-in selection [:resource "birth_date"]) human-date-format))]]
      [:div {:className "dialog-button"}
       [:> LinkButton {:onClick (partial on-click-yes selection)
-                      :style {:float "left" :width "80px"}} (:yes locale)]        
+                      :style {:float "left" :width "80px"}} (:yes dialog-delete)]        
       [:> LinkButton {:onClick on-click-no
-                      :style {:width "80px"}} (:no locale)]]]))
+                      :style {:width "80px"}} (:no dialog-delete)]]]))

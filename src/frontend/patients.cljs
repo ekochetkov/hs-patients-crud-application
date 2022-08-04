@@ -150,6 +150,6 @@
 
    [:> LayoutPanel {:region "center" :style {:height "100%"}}
     [datagrid/entry locale state]
-    [dialog-delete/entry selection (:dialog-delete locale)]
+    [dialog-delete/entry selection (select-keys locale [:dialog-delete :human-date-format])]
     [dialog-create/entry locale models/Patient]
     [dialog-update/entry locale models/Patient]]]))
