@@ -23,7 +23,7 @@
                      :dialog-create dialog-create/init-state
                      :dialog-delete dialog-delete/init-state}})
 
-(def locales {:en {:human-date-format "yyyy-MM-dd"
+(def locales {:en {:human-date-format "MM/dd/yyyy"
                    :gender.male "Male"
                    :gender.female "Female"                   
                    :patient-name "Patient name"
@@ -140,21 +140,10 @@
                         :onCollapse #(rf/dispatch [::show-filter-panel :close])                        
                         :collapsed (not show-filter-panel)
                         :style {:width "305px"}}
-
-        [filter-panel/entry locale]
-        ]
-
-;   [:> LayoutPanel {:region "south"} (str @(rf/subscribe [:patients/remote-filters]))]
-
-   #_(let [patients-state @(rf/subscribe [:app-state])]
-;         update-in patient]f
-      [:> LayoutPanel {:region "east" :style {:width "300px"}} patients-state]
-   )
+        [filter-panel/entry locale]]
 
    [:> LayoutPanel {:region "center" :style {:height "100%"}}
     [datagrid/entry locale state]
     [dialog-delete/entry selection]
     [dialog-create/entry locale models/Patient]
-    [dialog-update/entry locale models/Patient]
-                  ]
-   ]))
+    [dialog-update/entry locale models/Patient]]]))

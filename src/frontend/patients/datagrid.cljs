@@ -1,6 +1,6 @@
 (ns frontend.patients.datagrid
   (:require
-   ["rc-easyui" :refer [Layout LayoutPanel DataGrid GridColumn LinkButton Dialog Form TextBox DateBox SearchBox MaskedBox ComboBox FormField ButtonGroup]]
+   ["rc-easyui" :refer [dateHelper Layout LayoutPanel DataGrid GridColumn LinkButton Dialog Form TextBox DateBox SearchBox MaskedBox ComboBox FormField ButtonGroup]]
    [reagent.core :as r]
    [clojure.string :refer [trim replace blank? join]]
    [frontend.modules :as rfm]
@@ -21,7 +21,6 @@
                  :total 0
                  :page-size 50
                  :page-number 1})
-
 
 (reg-sub ::state #(-> %))
 
@@ -77,23 +76,23 @@
   (rf/dispatch [::on-page-change page-number page-size])
   ))
 
-(defn- ts->human-date [ts]
-  (let [date (new js/Date ts)
-        y (.getFullYear date)
-        m (inc (.getMonth date))
-        d (.getDate date)]
-    (str y "-" (when (< m 10) "0") m  
-           "-" (when (< d 10) "0") d )))
+(defn- ts->human-date [ts format]
+  (let [date (new js/Date ts)]
+     (.formatDate dateHelper date format)))
 
-(defn- mapping-data-from-back [data]
+(defn- mapping-data-from-back [locale data]
   (->> data
     (map (fn [row]
-           (assoc (:resource row)
+      (assoc (:resource row)
+          "gender" (case (get-in row [:resource "gender"])
+                      "male" (:gender.male locale)
+                      "female" (:gender.female locale)
+                       "unknow")
                   "uuid" (:uuid row)
                   "policy_number" (->> (partition-all 4 (get-in row [:resource "policy_number"]))
                                        (map #(join %))
                                        (join " "))
-                  "birth_date" (ts->human-date (get-in row [:resource "birth_date"])))))))
+                  "birth_date" (ts->human-date (get-in row [:resource "birth_date"]) (:human-date-format locale)))))))
 
 (defn- filter-data [pattern data]
   (->> data
@@ -118,18 +117,16 @@
                     (fn [m k v] (assoc m k (highlite v k pattern)))
                      {}))))))
 
-(reg-sub ::data
-  (fn [state]
-;    (js/console.log "::data" (count (:data state)))
-    (-> (:data state)
-         mapping-data-from-back
+(defn data-view [data filter-text-like locale]
+      (-> data
+         ((partial mapping-data-from-back locale))
          ((fn [data]
-            (if-let [ftl (:filter-text-like state)]
+            (if-let [ftl filter-text-like]
               (let [pattern (js/RegExp. ftl "gi")]
                 (-> data
                     ((partial filter-data pattern))
                     ((partial highlite-data pattern))))
-              data))))))
+              data)))))
 
 (defn- toolbar-buttons [locale {:keys [selection filter-text-like loading]} {:keys [show-filter-panel]}]
   [{:id "patients-datagrid-toolbar-button-add"
@@ -153,7 +150,7 @@
      :onClick #(rf/dispatch [:frontend.patients.dialog-delete/show-dialog])}
 
    {:id "patients-datagrid-toolbar-button-update"
-    :caption (:action.update locale) :class :LinkButton :iconCls "icon-edit" :style {:margin "5px" :width "100px"}
+    :caption (:action.update locale) :class :LinkButton :iconCls "icon-edit" :style {:margin "5px" :width "120px"}
      :disabled (not selection)
      :onClick #(rf/dispatch [:frontend.patients.dialog-update/show-dialog selection])}
 
@@ -171,10 +168,10 @@
 
 (defn entry [locale parent-state]
   (let [state @(rf/subscribe [::state])
-        data @(rf/subscribe [::data])
+        data (:data state)
         {:keys [selection total page-size page-number loading]} state]
     [:div
-     [:> DataGrid {:data data
+     [:> DataGrid {:data (data-view data (:filter-text-like state) locale)
                    :style {:height "100%"}
                    :selectionMode "single"
                    :toolbar (partial datagrid-toolbar locale state parent-state)
@@ -197,7 +194,7 @@
                     :title (:patient-name locale)}]
     [:> GridColumn {:width "140px" :align "center" :field "birth_date"
                     :title (:birth-date locale)}]
-    [:> GridColumn {:width "70px"  :field "gender" :align "center"
+    [:> GridColumn {:width "100px"  :field "gender" :align "center"
                     :title (:gender locale)}]
     [:> GridColumn {:width "220px" :align "center" :field "policy_number"
                     :title (:policy-number locale)}]

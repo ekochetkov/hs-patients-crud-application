@@ -2,11 +2,6 @@
   (:require [clojure.string :refer [trim replace blank? join]]
             [frontend.utils :refer [js-date->ts-without-tz]]))
 
-(def locales {:en {:human-date-format "yyyy-MM-dd"}
-              :ru {:human-date-format "dd.MM.yyyy"}})
-
-(def locale (:en locales))
-
 (def Patient
   {:converts {"patient_name" {:set trim}
               "address" {:set trim}             
@@ -23,19 +18,14 @@
                                                (map #(join %))
                                                (join " ")))))}}
 
-   
    :fields
   {:patient-name {:name "patient_name"
                   :rc-input-class :TextBox
                   :rc-input-attrs (fn [_] {})}
 
    :birth-date {:name "birth_date"
-
                 :rc-input-class :DateBox    
-                :rc-input-attrs (fn [locale]
-                                  {:format (:human-date-format locale)})}
-
-;                                   (:human-date-format locale)})}
+                :rc-input-attrs (fn [locale] {:format (:human-date-format locale)})}
    
    :gender {:name "gender"
             :rc-input-class :ComboBox    
