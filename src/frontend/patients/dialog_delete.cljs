@@ -27,7 +27,8 @@
   (fn [cofx]
     (-> cofx
       (assoc-in [:db :dialog-closed] true)
-      (assoc :fx [[:dispatch [:frontend.patients.datagrid/datagrid-reload]]]))))
+      (assoc :fx [[:dispatch [:frontend.patients.datagrid/on-row-click {}]]
+                  [:dispatch [:frontend.patients.datagrid/datagrid-reload]]]))))
 
 (rf/reg-event-db ::show-dialog
    #(assoc % :dialog-closed false
