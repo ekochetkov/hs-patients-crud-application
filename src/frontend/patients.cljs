@@ -57,7 +57,10 @@
                    :dialog-create.button-create "Create"
                    :dialog-update.caption "Update patient"
                    :dialog-update.button-update "Update"
-                   }
+                   :dialog-delete {:caption "Delete patient"
+                                   :text "Delete patient"
+                                   :yes "Yes"
+                                   :no "No"}}
               :ru {:human-date-format "dd.MM.yyyy"
                    :gender.male "Мужской"
                    :gender.female "Женский"
@@ -91,8 +94,11 @@
                    :dialog-create.caption "Добавить"
                    :dialog-create.button-create "Добавить"
                    :dialog-update.caption "Обновить данные пациента"
-                   :dialog-update.button-update "Сохранить"                   
-                   }})
+                   :dialog-update.button-update "Сохранить"
+                   :dialog-delete {:caption "Удалить запись"
+                                   :text "Удалить пациента"
+                                   :yes "Да"
+                                   :no "Нет"}}})
 
 
 (reg-sub ::state #(-> %))
@@ -144,6 +150,6 @@
 
    [:> LayoutPanel {:region "center" :style {:height "100%"}}
     [datagrid/entry locale state]
-    [dialog-delete/entry selection]
+    [dialog-delete/entry selection (:dialog-delete locale)]
     [dialog-create/entry locale models/Patient]
     [dialog-update/entry locale models/Patient]]]))

@@ -130,12 +130,14 @@
        [:p (when (= birth-date-mode :between) (:filter.birth-date.start locale))
         [:> DateBox {:style input-style
                      :value birth-date-start
+                     :format (:human-date-format locale)                     
                      :onChange #(rf/dispatch [::update-filters [:birth-date :start] %])}]])
 
      (when (= birth-date-mode :between)
        [:p (:filter.birth-date.end locale)
         [:> DateBox {:style input-style
                      :value birth-date-end
+                     :format (:human-date-format locale)
                      :onChange #(rf/dispatch [::update-filters [:birth-date :end] %])}]])
      [:hr]
 

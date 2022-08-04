@@ -51,20 +51,20 @@
 (defn- on-click-no []
   (rf/dispatch [::close-dialog]))
 
-(defn entry [selection]
+(defn entry [selection locale]
   (let [state @(rf/subscribe [::state])
         closed (:dialog-closed state)]
       [:> Dialog
         {:closed closed
          :onClose on-dialog-close
-         :title "Delete patient"
+         :title (:caption locale)
          :modal true}
         [:div {:style {:padding "30px 20px"} :className "f-full"}
-         [:p (str "Delete paptient: " (get-in selection [:resource "patient_name"])
+         [:p (str (:text locale) ": " (get-in selection [:resource "patient_name"])
                                  " (" (ts->human-date (get-in selection [:resource "birth_date"])) ")?")]]
 
      [:div {:className "dialog-button"}
       [:> LinkButton {:onClick (partial on-click-yes selection)
-                      :style {:float "left" :width "80px"}} "Yes"]        
+                      :style {:float "left" :width "80px"}} (:yes locale)]        
       [:> LinkButton {:onClick on-click-no
-                      :style {:width "80px"}} "No"]]]))
+                      :style {:width "80px"}} (:no locale)]]]))
