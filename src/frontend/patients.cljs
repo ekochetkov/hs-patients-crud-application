@@ -23,7 +23,9 @@
                      :dialog-create dialog-create/init-state
                      :dialog-delete dialog-delete/init-state}})
 
-(def locales {:en {:human-date-format "yyyy-MM-dd"
+(def locales {:en {:datagrid {:displayMsg "Displaying {from} to {to} of {total} items"
+                              :loadMsg "Processing... Please wait"}
+                   :human-date-format "MM/dd/yyyy"
                    :gender.male "Male"
                    :gender.female "Female"                   
                    :patient-name "Patient name"
@@ -33,7 +35,7 @@
                    :address "Address"
                    :action.add "Add"
                    :action.reload "Reload"
-                   :action.filter "Filter"
+                   :action.filter "Search"
                    :action.delete "Delete"
                    :action.update "Update"
                    :filter.patient-name "Patient name contains:"
@@ -43,7 +45,7 @@
                    :filter.gender.male "Male"
                    :filter.gender.female "Female"
                    :filter.policy-number "Policy number"
-                   :filter.birth-date "Birth date"
+                   :filter.birth-date "Birth date:"
                    :filter.birth-date.start "Start:"
                    :filter.birth-date.end "End:"                   
                    :filter.birth-date.any "Any"
@@ -57,8 +59,13 @@
                    :dialog-create.button-create "Create"
                    :dialog-update.caption "Update patient"
                    :dialog-update.button-update "Update"
-                   }
-              :ru {:human-date-format "dd.MM.yyyy"
+                   :dialog-delete {:caption "Delete patient"
+                                   :text "Delete patient"
+                                   :yes "Yes"
+                                   :no "No"}}
+              :ru {:datagrid {:displayMsg "Показаны записи с {from} по {to}. Всего {total}."
+                              :loadMsg "Обработка... Пожалуйста, подождите"}
+                   :human-date-format "dd.MM.yyyy"
                    :gender.male "Мужской"
                    :gender.female "Женский"
                    :patient-name "ФИО пациента"
@@ -68,7 +75,7 @@
                    :address "Адрес"
                    :action.add "Добавить"
                    :action.reload "Обновить"
-                   :action.filter "Фильтр"
+                   :action.filter "Поиск"
                    :action.delete "Удалить"
                    :action.update "Изименить"
                    :filter.patient-name "ФИО пациента содержит:"
@@ -91,8 +98,11 @@
                    :dialog-create.caption "Добавить"
                    :dialog-create.button-create "Добавить"
                    :dialog-update.caption "Обновить данные пациента"
-                   :dialog-update.button-update "Сохранить"                   
-                   }})
+                   :dialog-update.button-update "Сохранить"
+                   :dialog-delete {:caption "Удалить запись"
+                                   :text "Удалить пациента"
+                                   :yes "Да"
+                                   :no "Нет"}}})
 
 
 (reg-sub ::state #(-> %))
@@ -140,21 +150,10 @@
                         :onCollapse #(rf/dispatch [::show-filter-panel :close])                        
                         :collapsed (not show-filter-panel)
                         :style {:width "305px"}}
-
-        [filter-panel/entry locale]
-        ]
-
-;   [:> LayoutPanel {:region "south"} (str @(rf/subscribe [:patients/remote-filters]))]
-
-   #_(let [patients-state @(rf/subscribe [:app-state])]
-;         update-in patient]f
-      [:> LayoutPanel {:region "east" :style {:width "300px"}} patients-state]
-   )
+        [filter-panel/entry locale]]
 
    [:> LayoutPanel {:region "center" :style {:height "100%"}}
     [datagrid/entry locale state]
-    [dialog-delete/entry selection]
+    [dialog-delete/entry selection (select-keys locale [:dialog-delete :human-date-format])]
     [dialog-create/entry locale models/Patient]
-    [dialog-update/entry locale models/Patient]
-                  ]
-   ]))
+    [dialog-update/entry locale models/Patient]]]))
