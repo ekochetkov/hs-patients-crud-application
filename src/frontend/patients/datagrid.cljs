@@ -1,17 +1,13 @@
 (ns frontend.patients.datagrid
   (:require
-   ["rc-easyui" :refer [MenuSep dateHelper Layout LayoutPanel DataGrid GridColumn LinkButton Dialog Form TextBox DateBox SearchBox MaskedBox ComboBox FormField ButtonGroup Menu MenuItem]]
+   ["rc-easyui" :refer [MenuSep DataGrid GridColumn LinkButton SearchBox Menu MenuItem]]
    [reagent.core :as r]
-   [clojure.string :refer [trim replace blank? join]]
-   [frontend.modules :as rfm]
+   [clojure.string :refer [join]]
    [common.patients]
-   [clojure.string :refer [trim replace blank?]]  
    [frontend.rf-nru-nwd :as rf-nru-nwd :refer [reg-sub]]   
-;   [frontend.patients :refer [ui-patients-model]]
-   [frontend.patients.models :as models]
    [frontend.utils :refer [with-id ts->human-date]]
    [frontend.comm :as comm]
-   [re-frame.core :as rf :refer [trim-v]]))
+   [re-frame.core :as rf]))
 
 (def init-state {:filter-text-like nil
                  :selection nil                 
@@ -164,7 +160,7 @@
                     ((partial highlite-data pattern))))
               data)))))
 
-(defn- toolbar-buttons [locale {:keys [selection filter-text-like loading]} {:keys [show-filter-panel]}]
+(defn- toolbar-buttons [locale {:keys [filter-text-like loading]} {:keys [show-filter-panel]}]
   [{:id "patients-datagrid-toolbar-button-add"
     :caption (:action.add locale) :class :LinkButton :iconCls "icon-add" :style {:margin "5px" :width "100px"}
     :onClick #(rf/dispatch [:frontend.patients.dialog-create/show-dialog])}
