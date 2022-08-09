@@ -15,7 +15,7 @@ jobs:
         with:
           version: '2020.04.05'
 
-      - uses: actions/checkout@latest
+      - uses: actions/checkout@v3
 
       - name: Run on ubuntu or macosx
         run: clj-kondo --lint src
