@@ -1,9 +1,7 @@
 (ns integration.easy-ui
-  (:require [clojure.test :refer [deftest is use-fixtures]]
-            [integration.utils :refer [classes add-pauses refill-text-input]]
+  (:require [integration.utils :refer [classes add-pauses refill-text-input]]
             [etaoin.api :as e]
-            [etaoin.keys :as k]
-            [clojure.string :as s]))
+            [etaoin.keys :as k]))
 
 (defn get-input [driver base-id]
   (e/get-element-attr driver (str ".//span[@id='" base-id "']//input") :value))

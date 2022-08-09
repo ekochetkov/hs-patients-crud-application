@@ -6,7 +6,6 @@
    [backend.db]
    [clojure.data.json :as json]
    [joda-time :as jt]
-   [clojure.java.jdbc :as jdbc]
    [clojure.string :refer [join]]
    [org.httpkit.client :as http]))
 
@@ -23,7 +22,7 @@
         gender-map {"Женщина" "female"
                     "Мужчина" "male"}]
     @(http/get url opts
-       (fn [{:keys [status headers body error]}]
+       (fn [{:keys [body error]}]
             (if error
               (println "Failed, exception is " error)
               (let [rows (json/read-str body)]

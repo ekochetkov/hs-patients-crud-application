@@ -1,7 +1,6 @@
 (ns frontend.comm
   (:require
    [re-frame.core :as rf]
-   [goog.string :as gstring]
    [websocket-fx.core :as wfx]))
 
 (def socket-id :default)
