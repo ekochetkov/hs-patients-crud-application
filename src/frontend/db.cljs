@@ -1,34 +1,20 @@
 (ns frontend.db
   (:require
-   ["rc-easyui" :refer [DataGrid GridColumn Layout LayoutPanel Tree LinkButton Dialog Form TextBox Label DateBox]]
-   [reagent.core :as r]
-   [reagent.dom :as rdom]   
    [re-frame.core :as rf]
-   [goog.string :as gstring]
-   [websocket-fx.core :as wfx]
-   [frontend.modules :as m]
    [frontend.patients :as p]
-   [frontend.layout :as l]
-   [re-frame.db]
-   ))
+   [re-frame.db]))
 
 (def locales {:en {:strings {:patinents.datagrid.column.patient-name "Patient name"}
                    :human-date-format "yyyy-MM-dd"}
               :ru {:strings {:patinents.datagrid.column.patient-name "Имя пациента"}
                    :human-date-format "dd.MM.yyyy"}})
   
-
 (def locale (:en locales))
 
 (def db {:locale-lang :ru
          :locale (:ru locales)
          
-         :. {:layout l/init-state
-             :patients p/init-state}
-         })
-
-;(def app-db-default
-                                        ;  (assoc db :module.patients patients/db))
+         :. {:patients p/init-state}})
 
 (rf/reg-sub :locale-lang #(-> % :frontend :locale-lang))
 

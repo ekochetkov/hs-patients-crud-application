@@ -1,6 +1,6 @@
 (ns backend.ws
   (:require
-   [org.httpkit.server :refer [send! as-channel on-receive]]
+   [org.httpkit.server :refer [send! as-channel]]
    [schema.core :as s]
    [clojure.edn]
    [backend.ws-events :refer [process-ws-event]]

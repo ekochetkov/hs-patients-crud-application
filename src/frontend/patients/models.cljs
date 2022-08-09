@@ -1,5 +1,5 @@
 (ns frontend.patients.models
-  (:require [clojure.string :refer [trim replace blank? join]]
+  (:require [clojure.string :refer [trim replace join]]
             [frontend.utils :refer [js-date->ts-without-tz]]))
 
 (def Patient
@@ -35,10 +35,10 @@
    
    :address {:name "address"
              :rc-input-class :TextBox
-             :rc-input-attrs (fn [locale]
+             :rc-input-attrs (fn [_]
                                 {:multiline true :style {:height "70px"}})}
 
    :policy-number {:name "policy_number"
                    :rc-input-class :MaskedBox
-                   :rc-input-attrs (fn [locale]
+                   :rc-input-attrs (fn [_]
                                           {:mask "9999 9999 9999 9999"})}}})

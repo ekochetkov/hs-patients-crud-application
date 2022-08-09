@@ -1,14 +1,16 @@
 (ns frontend.patients.dialog-update
   (:require
-   ["rc-easyui" :refer [Layout LayoutPanel DataGrid GridColumn LinkButton Dialog Form TextBox DateBox SearchBox MaskedBox ComboBox FormField ButtonGroup]]
-   [reagent.core :as r]
-   [clojure.string :refer [trim replace blank?]]
-   [frontend.modules :as rfm]
+   ["rc-easyui" :refer [LinkButton
+                        Dialog
+                        Form
+                        TextBox
+                        DateBox
+                        MaskedBox
+                        ComboBox
+                        FormField]]
    [common.patients]
-   [clojure.string :refer [trim replace blank?]]  
    [frontend.rf-nru-nwd :as rf-nru-nwd :refer [reg-sub]]
    [frontend.comm :as comm]
-   [frontend.patients.models :as models]   
    [re-frame.core :as rf]))
 
 (def init-state {:dialog-closed true
@@ -29,7 +31,7 @@
   #(assoc % :dialog-closed true))
 
 (rf/reg-event-fx ::send-event-update
-  (fn [cofx [_ selection]]
+  (fn [cofx _]
     (let [data (get-in cofx [:db :form-data])
           uuid (get-in cofx [:db :uuid])]
       (assoc cofx :fx [[:dispatch [::comm/send-event ::update [:patients/update uuid data]]]]))))
@@ -50,9 +52,8 @@
     (assoc module-state :is-valid-form-data (nil? errors))))
 
 (defn- on-change-form-data [model field-name value]
-  (this-as this
-    (let [set-fn (get-in model [:converts field-name :set] #(-> %))]
-       (rf/dispatch [::on-change-form-data field-name (set-fn value)]))))
+  (let [set-fn (get-in model [:converts field-name :set] #(-> %))]
+    (rf/dispatch [::on-change-form-data field-name (set-fn value)])))
 
 (defn- on-validate-form-data [errors]
   (rf/dispatch [::on-validate-form-data errors]))
@@ -66,7 +67,6 @@
 (defn- create-form-field [locale model f-name f-data f-value]
   (let[{:keys [name rc-input-class rc-input-attrs]} f-data
        get-fn (get-in model [:converts name :get] #(-> %))]
-;    (js/console.log "xx" (str f-name get-fn get-in  (str (get-in model [:converts])))
   [:> FormField {:name name
                  :labelAlign "right"
                  :labelWidth "160px"

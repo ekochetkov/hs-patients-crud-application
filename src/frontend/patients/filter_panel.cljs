@@ -1,14 +1,13 @@
 (ns frontend.patients.filter-panel
   (:require
-   ["rc-easyui" :refer [Layout LayoutPanel DataGrid GridColumn LinkButton Dialog Form TextBox DateBox SearchBox MaskedBox ComboBox FormField ButtonGroup]]
-   [reagent.core :as r]
-   [clojure.string :refer [trim replace blank?]]
-   [frontend.modules :as rfm]
+   ["rc-easyui" :refer [LinkButton
+                        TextBox
+                        DateBox
+                        MaskedBox
+                        ButtonGroup]]
+   [clojure.string :refer [blank?]]
    [common.patients]
-   [clojure.string :refer [trim replace blank?]]  
    [frontend.rf-nru-nwd :as rf-nru-nwd :refer [reg-sub]]   
-;   [frontend.patients :refer [ui-patients-model]]
-   [frontend.patients.models :as models]   
    [re-frame.core :as rf]))
 
 (def init-state {:filters {}})

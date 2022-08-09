@@ -1,17 +1,16 @@
 (ns frontend.patients
   (:require
-   ["rc-easyui" :refer [Layout LayoutPanel DataGrid GridColumn LinkButton Dialog Form TextBox DateBox SearchBox MaskedBox ComboBox FormField ButtonGroup]]
-   [reagent.core :as r]
-   [clojure.string :refer [trim replace blank?]]
+   ["rc-easyui" :refer [Layout
+                        LayoutPanel
+                        LinkButton
+                        ButtonGroup]]
    [common.patients]
    [frontend.rf-nru-nwd :refer [reg-sub]]
-
    [frontend.patients.datagrid :as datagrid]
    [frontend.patients.filter-panel :as filter-panel]
    [frontend.patients.dialog-create :as dialog-create]
    [frontend.patients.dialog-update :as dialog-update]
    [frontend.patients.dialog-delete :as dialog-delete]
-   [frontend.comm :as comm]
    [frontend.patients.models :as models]
    [re-frame.core :as rf]))
 

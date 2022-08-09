@@ -1,6 +1,5 @@
 (ns backend.patients-events
   (:require [schema.core :as s]
-            [clojure.data.json :as json]
             [clojure.java.jdbc :as jdbc]
             [backend.ws-events :refer [process-ws-event]]
             [common.patients]

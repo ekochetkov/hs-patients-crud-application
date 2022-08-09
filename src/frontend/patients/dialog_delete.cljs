@@ -1,17 +1,12 @@
 (ns frontend.patients.dialog-delete
   (:require
-   ["rc-easyui" :refer [Layout LayoutPanel DataGrid GridColumn LinkButton Dialog Form TextBox DateBox SearchBox MaskedBox ComboBox FormField ButtonGroup]]
-   [reagent.core :as r]
-   [clojure.string :refer [trim replace blank?]]
-   [frontend.modules :as rfm]
+   ["rc-easyui" :refer [LinkButton Dialog]]
    [common.patients]
    [goog.string :as gstring]
    [goog.string.format]
    [frontend.comm :as comm]   
-   [clojure.string :refer [trim replace blank?]]
    [frontend.utils :refer [ts->human-date]]   
    [frontend.rf-nru-nwd :as rf-nru-nwd :refer [reg-sub]]   
-   [frontend.patients.models :as models]   
    [re-frame.core :as rf]))
 
 (def init-state {:dialog-closed true})

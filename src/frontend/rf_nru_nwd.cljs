@@ -1,7 +1,7 @@
 (ns frontend.rf-nru-nwd
   (:require
    [re-frame.core]
-   [re-frame.interceptor :refer [->interceptor get-effect get-coeffect assoc-coeffect assoc-effect update-coeffect]]
+   [re-frame.interceptor :refer [->interceptor get-effect get-coeffect assoc-coeffect assoc-effect]]
    [clojure.string :as s]))
 
 (defn id->path [id]

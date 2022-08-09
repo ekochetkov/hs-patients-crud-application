@@ -2,13 +2,12 @@
   (:gen-class)
   (:require
    [backend.context :refer [ctx]]
-   [org.httpkit.server :refer [run-server send! with-channel on-close on-receive]]
+   [org.httpkit.server :refer [run-server]]
    [compojure.core :refer [defroutes GET]]
    [compojure.route :refer [resources]]
    [hiccup.core :as hp]
    [clojure.edn]
    [clojure.java.jdbc :as jdbc]
-   [schema.core :as schema]
    [backend.ws :as ws]))
 
 (defonce server-stop-func (atom nil))
@@ -30,6 +29,7 @@
     (jdbc/query (:db-spec ctx) "select version()")
     "ok"
     (catch Exception e
+      (println e)
       "fail")))
 
 (defroutes app

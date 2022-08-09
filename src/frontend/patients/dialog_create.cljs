@@ -1,15 +1,17 @@
 (ns frontend.patients.dialog-create
   (:require
-   ["rc-easyui" :refer [Layout LayoutPanel DataGrid GridColumn LinkButton Dialog Form TextBox DateBox SearchBox MaskedBox ComboBox FormField ButtonGroup]]
-   [reagent.core :as r]
-   [clojure.string :refer [trim replace blank?]]
-   [frontend.modules :as rfm]
+   ["rc-easyui" :refer [LinkButton
+                        Dialog
+                        Form
+                        TextBox
+                        DateBox
+                        MaskedBox
+                        ComboBox
+                        FormField]]
    [common.patients]
    [frontend.comm :as comm]   
-   [clojure.string :refer [trim replace blank?]]  
    [frontend.rf-nru-nwd :as rf-nru-nwd :refer [reg-sub]]   
    [frontend.utils :refer [with-id]]
-   [frontend.patients.models :as models]   
    [re-frame.core :as rf]))
 
 (def init-state {:dialog-closed true
@@ -48,9 +50,8 @@
     (assoc module-state :is-valid-form-data (nil? errors))))
 
 (defn- on-change-form-data [model field-name value]
-  (this-as this
-    (let [set-fn (get-in model [:converts field-name :set] #(-> %))]
-       (rf/dispatch [::on-change-form-data field-name (set-fn value)]))))
+  (let [set-fn (get-in model [:converts field-name :set] #(-> %))]
+     (rf/dispatch [::on-change-form-data field-name (set-fn value)])))
    
 (defn- on-validate-form-data [errors]
   (rf/dispatch [::on-validate-form-data errors]))
