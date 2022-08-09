@@ -10,15 +10,15 @@ on:
 jobs:
   Lint:
     runs-on: ubuntu-latest
-  steps:
-    - uses: DeLaGuardo/setup-clj-kondo@master
-      with:
-        version: '2020.04.05'
+    steps:
+      - uses: DeLaGuardo/setup-clj-kondo@master
+        with:
+          version: '2020.04.05'
 
-    - uses: actions/checkout@latest
+      - uses: actions/checkout@latest
 
-    - name: Run on ubuntu or macosx
-      run: clj-kondo --lint src
+      - name: Run on ubuntu or macosx
+        run: clj-kondo --lint src
 
   Test-backend:
     needs: [Lint]
