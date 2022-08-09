@@ -8,7 +8,20 @@ on:
     branches: ["master"]
 
 jobs:
+  Lint:
+    runs-on: ubuntu-latest
+  steps:
+    - uses: DeLaGuardo/setup-clj-kondo@master
+      with:
+        version: '2020.04.05'
+
+    - uses: actions/checkout@latest
+
+    - name: Run on ubuntu or macosx
+      run: clj-kondo --lint src
+
   Test-backend:
+    needs: [Lint]
     runs-on: ubuntu-latest
     services:
       db:
@@ -45,6 +58,7 @@ jobs:
         run: clojure -X:backend-test
 
   Build-frontend:
+    needs: [Lint]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
