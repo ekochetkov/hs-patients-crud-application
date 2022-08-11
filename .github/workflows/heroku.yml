@@ -121,31 +121,28 @@ jobs:
         env:
           POSTGRES_PASSWORD: postgres
 
-      app:
-        build: .
-        env:
-          DATABASE_URL: 'jdbc:postgresql://db:5432/clinic?user=postgres&password=postgres'
-          WS_URL: 'ws://host.docker.internal/ws'
-          PORT: 80
-        ports:
-          - 80:80
-
       chrome:
         image: selenium/standalone-chrome:103.0
         ports:
           - 4444:4444
-        extra_hosts:
-          - "host.docker.internal:host-gateway"
 
       firefox:
         image: selenium/standalone-firefox:103.0
         ports:
           - 4445:4444
-        extra_hosts:
-          - "host.docker.internal:host-gateway"
 
     steps:
       - uses: actions/checkout@v3
+
+      - name: Build app image
+        run: docker build -t local .
+
+      - name: Run app image
+        env:
+          DATABASE_URL: 'jdbc:postgresql://db:5432/clinic?user=postgres&password=postgres'
+          WS_URL: 'ws://localhost/ws'
+          PORT: 80
+        run: sudo docker run local
 
       - name: Create database for tests
         env:
