@@ -115,16 +115,15 @@ jobs:
     services:
 
       db:
-        container_name: db
         image: aidbox/db:12.1.1-PRO.RC1
         ports:
           - 5432:5432
-        environment:
+        env:
           POSTGRES_PASSWORD: postgres
 
       app:
         build: .
-        environment:
+        env:
           DATABASE_URL: 'jdbc:postgresql://db:5432/clinic?user=postgres&password=postgres'
           WS_URL: 'ws://host.docker.internal/ws'
           PORT: 80
