@@ -107,8 +107,77 @@ jobs:
           name: app.jar
           path: target/app.jar
 
-  Deploy-to-heroku-as-image:
+  Acceptence-test:
     needs: [Pack-application]
+    runs-on: ubuntu-latest
+    env:
+      APP_URL: "http://host.docker.internal"
+    services:
+
+      db:
+        container_name: db
+        image: aidbox/db:12.1.1-PRO.RC1
+        ports:
+          - 5432:5432
+        environment:
+          POSTGRES_PASSWORD: postgres
+
+      app:
+        build: .
+        environment:
+          DATABASE_URL: 'jdbc:postgresql://db:5432/clinic?user=postgres&password=postgres'
+          WS_URL: 'ws://host.docker.internal/ws'
+          PORT: 80
+        ports:
+          - 80:80
+
+      chrome:
+        image: selenium/standalone-chrome:103.0
+        ports:
+          - 4444:4444
+        extra_hosts:
+          - "host.docker.internal:host-gateway"
+
+      firefox:
+        image: selenium/standalone-firefox:103.0
+        ports:
+          - 4445:4444
+        extra_hosts:
+          - "host.docker.internal:host-gateway"
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Create database for tests
+        env:
+          PGPASSWORD: postgres
+        run: |
+          sudo apt-get update
+          sudo apt install -y postgresql-client
+          psql -h 127.0.0.1 -p 5432 -U postgres -c "create database clinic"
+
+      - name: Install clojure tools
+        uses: DeLaGuardo/setup-clojure@9.3
+        with:
+          cli: 1.11.1.1149
+
+      - name: Migrate database schema
+        run: clojure -M:migrate
+
+      - name: Acceptence test in Chrome
+        env:
+          SELENIUM_GRID_HUB_URL: "http://127.0.0.1:4444/wd/hub"
+          SELENIUM_GRID_BROWSER: "chrome"
+        run: clojure -X:integration-test
+
+      - name: Acceptence test in Firefox
+        env:
+          SELENIUM_GRID_HUB_URL: "http://127.0.0.1:4445/wd/hub"
+          SELENIUM_GRID_BROWSER: "firefox"
+        run: clojure -X:integration-test
+
+  Deploy-to-heroku-as-image:
+    needs: [Acceptence-test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -127,37 +196,3 @@ jobs:
           checkstring: "ok"
           rollbackonhealthcheckfailed: true
           delay: 15
-
-  Acceptence-test:
-    needs: [Deploy-to-heroku-as-image]
-    runs-on: ubuntu-latest
-    env:
-      APP_URL: "https://demo-patients-crud.herokuapp.com/"
-    services:
-      chrome:
-        image: selenium/standalone-chrome:103.0
-        ports:
-          - 4444:4444
-      firefox:
-        image: selenium/standalone-firefox:103.0
-        ports:
-          - 4445:4444
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Install clojure tools
-        uses: DeLaGuardo/setup-clojure@9.3
-        with:
-          cli: 1.11.1.1149
-
-      - name: Test in Chrome
-        env:
-          SELENIUM_GRID_HUB_URL: "http://127.0.0.1:4444/wd/hub"
-          SELENIUM_GRID_BROWSER: "chrome"
-        run: clojure -X:integration-test
-
-      - name: Test in Firefox
-        env:
-          SELENIUM_GRID_HUB_URL: "http://127.0.0.1:4445/wd/hub"
-          SELENIUM_GRID_BROWSER: "firefox"
-        run: clojure -X:integration-test
