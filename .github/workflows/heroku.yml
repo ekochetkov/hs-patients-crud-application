@@ -108,7 +108,7 @@ jobs:
     needs: [Pack-application]
     runs-on: ubuntu-latest
     env:
-      APP_URL: "http://localhost"
+      APP_URL: "http://host.docker.internal"
     services:
 
       db:
@@ -120,18 +120,19 @@ jobs:
 
       chrome:
         image: selenium/standalone-chrome:103.0
+        options: --add-host=host.docker.internal:host-gateway
         ports:
           - 4444:4444
 
       firefox:
         image: selenium/standalone-firefox:103.0
+        options: --add-host=host.docker.internal:host-gateway
         ports:
           - 4445:4444
 
     steps:
       - uses: actions/checkout@v3
 
-      - uses: actions/checkout@v3
       - uses: actions/download-artifact@v3
         with:
           name: app.jar
