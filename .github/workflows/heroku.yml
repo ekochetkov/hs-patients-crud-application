@@ -140,7 +140,7 @@ jobs:
         run: docker build -t local .
 
       - name: Run app container
-        run: docker run --net=host --env DATABASE_URL='jdbc:postgresql://localhost:5432/clinic?user=postgres&password=postgres' --env PORT=80 --env WS_URL='ws://localhost/ws' --detach local > local-container-id
+        run: docker run --net=host --env DATABASE_URL='jdbc:postgresql://localhost:5432/clinic?user=postgres&password=postgres' --env PORT=80 --env WS_URL='ws://host.docker.internal/ws' --detach local > local-container-id
 
       - name: Create database for tests
         env:
