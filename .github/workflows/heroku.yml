@@ -108,7 +108,7 @@ jobs:
     needs: [Pack-application]
     runs-on: ubuntu-latest
     env:
-      APP_URL: "http://host.docker.internal"
+      APP_URL: "http://localhost"
     services:
 
       db:
@@ -131,15 +131,23 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - uses: actions/checkout@v3
+      - uses: actions/download-artifact@v3
+        with:
+          name: app.jar
+
       - name: Build app image
         run: docker build -t local .
 
-      - name: Run app image
-        env:
-          DATABASE_URL: 'jdbc:postgresql://db:5432/clinic?user=postgres&password=postgres'
-          WS_URL: 'ws://localhost/ws'
-          PORT: 80
-        run: sudo docker run local
+      - name: Run app container
+        run: >-
+          docker run
+            --net=host
+            --env DATABASE_URL='jdbc:postgresql://localhost:5432/clinic?user=postgres&password=postgres'
+            --env PORT=80
+            --env WS_URL='ws://localhost/ws'
+            --detach
+            local > local-container-id
 
       - name: Create database for tests
         env:
@@ -168,6 +176,9 @@ jobs:
           SELENIUM_GRID_HUB_URL: "http://127.0.0.1:4445/wd/hub"
           SELENIUM_GRID_BROWSER: "firefox"
         run: clojure -X:integration-test
+
+      - name: Stop app container
+        run: docker stop $(cat local-container-id)
 
   Deploy-to-heroku-as-image:
     needs: [Acceptence-test]
