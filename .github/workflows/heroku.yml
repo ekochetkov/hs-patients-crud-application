@@ -150,12 +150,17 @@ jobs:
           sudo apt install -y postgresql-client
           psql -h 127.0.0.1 -p 5432 -U postgres -c "create database clinic"
 
+      - name: Check app health
+        run: curl localhost/health
+
       - name: Install clojure tools
         uses: DeLaGuardo/setup-clojure@9.3
         with:
           cli: 1.11.1.1149
 
       - name: Migrate database schema
+        env:
+          DATABASE_URL: 'jdbc:postgresql://localhost:5432/clinic?user=postgres&password=postgres'
         run: clojure -M:migrate
 
       - name: Acceptence test in Chrome
