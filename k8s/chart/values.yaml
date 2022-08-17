@@ -1,0 +1,20 @@
+---
+main:
+  db:
+    # Base64 encode in db-secret template
+    userPassword: clinicDefaultPassword
+    adminPassword: postgresDefaultPassword
+  image: jonykoch/patients-crud-application:latest
+  config:
+    WS_URL: 'ws://<your domain and port>/ws'
+    PORT: 9009
+dbmaster:
+  auth:
+    database: clinic
+    username: clinic
+    existingSecret: app-db-secret
+  primary:
+    persistence:
+      existingClaim: app-pg-pvc
+  volumePermissions:
+    enabled: true
