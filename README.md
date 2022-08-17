@@ -2,7 +2,7 @@
 
 # Steps for install app in Kubernetes cluster from zero
 
-![Application resources in cluster diagram](diag.png "Application resources in cluster diagram")
+![Application resources in cluster diagram](k8s/diag.png "Application resources in cluster diagram")
 
 In the current directory run commands:
 
