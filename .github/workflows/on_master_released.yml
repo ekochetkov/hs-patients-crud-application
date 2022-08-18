@@ -1,0 +1,22 @@
+---
+name: On master released
+
+on:
+  release:
+    types: [released]
+    branches: [master]
+
+jobs:
+  Base:
+    uses: ./.github/workflows/base.yml
+
+  Build-and-deploy-image-to-Docker-hub:
+    needs: [Base]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/download-artifact@v3
+        with:
+          name: app.jar
+
+      - run: echo "Build and deploy to Docker hub here"

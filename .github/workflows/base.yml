@@ -1,11 +1,7 @@
 ---
-name: Clojure CI to Heroku (preprod)
+name: Base workflow
 
-on:
-  #  push:
-  #    branches: [ "master" ]
-  pull_request:
-    branches: ["master"]
+on: workflow_call
 
 jobs:
   Lint:
@@ -25,23 +21,19 @@ jobs:
     runs-on: ubuntu-latest
     services:
       db:
-        image: aidbox/db:12.1.1-PRO.RC1
+        image: bitnami/postgresql:14.5.0-debian-11-r3
         env:
           POSTGRES_PASSWORD: postgres
+          POSTGRESQL_USERNAME: user
+          POSTGRESQL_PASSWORD: userpass
+          POSTGRESQL_DATABASE: clinic
         ports:
           - 5432:5432
     env:
-      DATABASE_URL: "jdbc:postgresql://127.0.0.1:5432/clinic?user=postgres&password=postgres"
+      DATABASE_URL: >-
+        "jdbc:postgresql://localhost:5432/clinic?user=user&password=userpass"
     steps:
       - uses: actions/checkout@v3
-
-      - name: Create database for tests
-        env:
-          PGPASSWORD: postgres
-        run: |
-          sudo apt-get update
-          sudo apt install -y postgresql-client
-          psql -h 127.0.0.1 -p 5432 -U postgres -c "create database clinic"
 
       - name: Install clojure tools
         uses: DeLaGuardo/setup-clojure@9.3
@@ -112,11 +104,14 @@ jobs:
     services:
 
       db:
-        image: aidbox/db:12.1.1-PRO.RC1
-        ports:
-          - 5432:5432
+        image: bitnami/postgresql:14.5.0-debian-11-r3
         env:
           POSTGRES_PASSWORD: postgres
+          POSTGRESQL_USERNAME: user
+          POSTGRESQL_PASSWORD: userpass
+          POSTGRESQL_DATABASE: clinic
+        ports:
+          - 5432:5432
 
       chrome:
         image: selenium/standalone-chrome:103.0
@@ -141,15 +136,14 @@ jobs:
         run: docker build -t local .
 
       - name: Run app container
-        run: docker run --net=host --env DATABASE_URL='jdbc:postgresql://localhost:5432/clinic?user=postgres&password=postgres' --env PORT=80 --env WS_URL='ws://host.docker.internal/ws' --detach local > local-container-id
-
-      - name: Create database for tests
-        env:
-          PGPASSWORD: postgres
-        run: |
-          sudo apt-get update
-          sudo apt install -y postgresql-client
-          psql -h 127.0.0.1 -p 5432 -U postgres -c "create database clinic"
+        run: |-
+          docker run
+           --net=host
+           --env DATABASE_URL='jdbc:postgresql://localhost:5432/clinic?user=user&password=userpass'
+           --env PORT=80
+           --env WS_URL='ws://host.docker.internal/ws'
+           --detach local
+           > local-container-id
 
       - name: Check app health
         run: curl localhost/health
@@ -161,7 +155,8 @@ jobs:
 
       - name: Migrate database schema
         env:
-          DATABASE_URL: 'jdbc:postgresql://localhost:5432/clinic?user=postgres&password=postgres'
+          DATABASE_URL: >-
+            'jdbc:postgresql://localhost:5432/clinic?user=user&password=userpass'
         run: clojure -M:migrate
 
       - name: Acceptence test in Chrome
@@ -178,24 +173,3 @@ jobs:
 
       - name: Stop app container
         run: docker stop $(cat local-container-id)
-
-  Deploy-to-heroku-as-image:
-    needs: [Acceptence-test]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions/download-artifact@v3
-        with:
-          name: app.jar
-
-      - name: Deploy to Heroku
-        uses: akhileshns/heroku-deploy@v3.12.12
-        with:
-          heroku_api_key: ${{secrets.HEROKU_API_KEY}}
-          heroku_app_name: "demo-patients-crud"
-          heroku_email: ${{secrets.HEROKU_EMAIL}}
-          usedocker: true
-          healthcheck: "https://demo-patients-crud.herokuapp.com/health"
-          checkstring: "ok"
-          rollbackonhealthcheckfailed: true
-          delay: 15

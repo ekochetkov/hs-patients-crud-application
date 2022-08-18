@@ -1,0 +1,32 @@
+---
+name: On master prereleased
+
+on:
+  release:
+    types: [prereleased]
+    branches: [master]
+
+jobs:
+  Base:
+    uses: ./.github/workflows/base.yml
+
+  Deploy-to-heroku-for-staging:
+    needs: [Base]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/download-artifact@v3
+        with:
+          name: app.jar
+
+      - name: Deploy to Heroku
+        uses: akhileshns/heroku-deploy@v3.12.12
+        with:
+          heroku_api_key: ${{secrets.HEROKU_API_KEY}}
+          heroku_app_name: "demo-patients-crud"
+          heroku_email: ${{secrets.HEROKU_EMAIL}}
+          usedocker: true
+          healthcheck: "https://demo-patients-crud.herokuapp.com/health"
+          checkstring: "ok"
+          rollbackonhealthcheckfailed: true
+          delay: 15

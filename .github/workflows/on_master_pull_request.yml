@@ -1,0 +1,11 @@
+---
+name: On master pull request checks
+
+on:
+  pull_request:
+    types: [opened, reopened]
+    branches: [master]
+
+jobs:
+  Base:
+    uses: ./.github/workflows/base.yml
