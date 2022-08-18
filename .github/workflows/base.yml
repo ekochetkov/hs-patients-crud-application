@@ -136,7 +136,7 @@ jobs:
         run: docker build -t local .
 
       - name: Run app container
-        run: |-
+        run: >-
           docker run
            --net=host
            --env DATABASE_URL='jdbc:postgresql://localhost:5432/clinic?user=user&password=userpass'
