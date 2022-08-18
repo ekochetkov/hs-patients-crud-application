@@ -138,12 +138,12 @@ jobs:
       - name: Run app container
         run: >-
           docker run
-           --net=host
-           --env DATABASE_URL='jdbc:postgresql://localhost:5432/clinic?user=user&password=userpass'
-           --env PORT=80
-           --env WS_URL='ws://host.docker.internal/ws'
-           --detach local
-           > local-container-id
+          --net=host
+          --env DATABASE_URL='jdbc:postgresql://localhost:5432/clinic?user=user&password=userpass'
+          --env PORT=80
+          --env WS_URL='ws://host.docker.internal/ws'
+          --detach local
+          > local-container-id
 
       - name: Check app health
         run: curl localhost/health
