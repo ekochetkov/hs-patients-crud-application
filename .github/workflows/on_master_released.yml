@@ -20,7 +20,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build, tag, and push image to Amazon ECR
+      - name: Build, tag, and push image to Docker hub
         env:
           REGISTRY_REPOSITORY: jonykoch/patients-crud-application
           TAG: v0.0.2-manual
