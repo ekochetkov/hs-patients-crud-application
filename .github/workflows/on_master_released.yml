@@ -27,4 +27,4 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           push: true
-          tags: jonykoch/patients-crud-application:${{ steps.vars.outputs.tag }}
+          tags: jonykoch/patients-crud-application:${{ github.ref_name }}
