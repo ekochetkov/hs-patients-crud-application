@@ -146,7 +146,7 @@ jobs:
           > local-container-id
 
       - name: Check app health
-        run: curl localhost/health
+        run: sleep 15s && curl localhost/health
 
       - name: Install clojure tools
         uses: DeLaGuardo/setup-clojure@9.3
