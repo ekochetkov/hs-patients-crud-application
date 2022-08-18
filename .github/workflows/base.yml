@@ -31,7 +31,7 @@ jobs:
           - 5432:5432
     env:
       DATABASE_URL: >-
-        "jdbc:postgresql://localhost:5432/clinic?user=user&password=userpass"
+        jdbc:postgresql://localhost:5432/clinic?user=user&password=userpass
     steps:
       - uses: actions/checkout@v3
 
@@ -156,7 +156,7 @@ jobs:
       - name: Migrate database schema
         env:
           DATABASE_URL: >-
-            'jdbc:postgresql://localhost:5432/clinic?user=user&password=userpass'
+            jdbc:postgresql://localhost:5432/clinic?user=user&password=userpass
         run: clojure -M:migrate
 
       - name: Acceptence test in Chrome
