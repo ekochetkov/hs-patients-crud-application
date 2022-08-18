@@ -12,6 +12,7 @@ jobs:
 
   push_to_registry:
     name: Push Docker image to Docker Hub
+    needs: [Base]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
