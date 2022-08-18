@@ -11,3 +11,4 @@ target
 .lein-*
 .clj-kondo
 .lsp
+k8s/chart/charts

@@ -1,0 +1,58 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: '{{.Release.Name}}-deployment'
+spec:
+  selector:
+    matchLabels:
+      project: {{.Release.Name}}
+  template:
+    metadata:
+      labels:
+        project: {{.Release.Name}}
+    spec:
+      containers:
+        - name: app
+          image: {{.Values.main.image}}
+          ports:
+            - containerPort: {{.Values.main.config.PORT}}
+          env:
+            - name: WS_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: '{{.Release.Name}}-config'
+                  key: WS_URL
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: '{{.Release.Name}}-config'
+                  key: PORT
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{.Values.dbmaster.auth.existingSecret}}
+                  key: DATABASE_URL
+            # Debug info
+            - name: RUN_IN_K8S
+              value: 'true'
+            - name: K8S_POD_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: K8S_POD_IMAGE
+              value: {{.Values.main.image}}
+            - name: K8S_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: K8S_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: K8S_POD_DEPLOY_DATETIME
+              value: {{now}}
+            - name: K8S_POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace

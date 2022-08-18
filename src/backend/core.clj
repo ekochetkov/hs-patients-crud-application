@@ -2,35 +2,14 @@
   (:gen-class)
   (:require
    [backend.context :refer [ctx]]
+   [backend.pages :refer [index-page health]]
    [org.httpkit.server :refer [run-server]]
    [compojure.core :refer [defroutes GET]]
    [compojure.route :refer [resources]]
-   [hiccup.core :as hp]
    [clojure.edn]
-   [clojure.java.jdbc :as jdbc]
    [backend.ws :as ws]))
 
 (defonce server-stop-func (atom nil))
-
-(defn index-page [_]
-(hp/html [:html
-  [:head
-   [:title "Patients CRUD application"]
-   [:link {:href "themes/gray/easyui.css", :type "text/css", :rel "stylesheet"}]
-   [:link {:href "themes/icon.css", :type "text/css", :rel "stylesheet"}]
-   [:link {:href "themes/react.css", :type "text/css", :rel "stylesheet"}]
-  [:body
-   [:div#app]
-   [:script (str " WS_URL = '" (:ws-url ctx) "'; ")]
-   [:script {:src "js/main.js"}]]]]))
-
-(defn health [ctx _]
-  (try
-    (jdbc/query (:db-spec ctx) "select version()")
-    "ok"
-    (catch Exception e
-      (println e)
-      "fail")))
 
 (defroutes app
   (GET "/" [] index-page)
