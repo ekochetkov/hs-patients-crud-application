@@ -31,6 +31,5 @@ jobs:
           USER_REPOSITORY: jonykoch/patients-crud-application
           TAG: ${{github.ref_name}}
         run: |
-          echo "Run build command: 'build -t $USER_REPOSITORY:$TAG .'"
           docker build -t $USER_REPOSITORY:$TAG .
           docker push $USER_REPOSITORY:$TAG
