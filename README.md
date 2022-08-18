@@ -1,5 +1,9 @@
 # HS patients CRUD application
 
+# Deploy workflow
+
+![Deploy workflow](deploy-strategy.png "Deploy workflow")
+
 # Steps for install app in Kubernetes cluster from zero
 
 ![Application resources in cluster diagram](k8s/diag.png "Application resources in cluster diagram")
