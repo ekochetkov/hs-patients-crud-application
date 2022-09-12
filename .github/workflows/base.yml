@@ -153,10 +153,12 @@ jobs:
             jdbc:postgresql://localhost:5432/clinic?user=user&password=userpass
         run: clojure -M:migrate
 
-      - name: Acceptence test in Firefox
+      - name: Acceptance test in Firefox
         env:
           SELENIUM_GRID_HUB_URL: "http://127.0.0.1:4445/wd/hub"
           SELENIUM_GRID_BROWSER: "firefox"
+          DATABASE_URL: >-
+            jdbc:postgresql://localhost:5432/clinic?user=user&password=userpass
         run: clojure -X:acceptance-test
 
       - name: Stop app container
@@ -220,10 +222,12 @@ jobs:
             jdbc:postgresql://localhost:5432/clinic?user=user&password=userpass
         run: clojure -M:migrate
 
-      - name: Acceptence test in Chrome
+      - name: Acceptance test in Chrome
         env:
           SELENIUM_GRID_HUB_URL: "http://127.0.0.1:4444/wd/hub"
           SELENIUM_GRID_BROWSER: "chrome"
+          DATABASE_URL: >-
+            jdbc:postgresql://localhost:5432/clinic?user=user&password=userpass
         run: clojure -X:acceptance-test
 
       - name: Stop app container
