@@ -129,7 +129,6 @@
                 :MenuSep [:> MenuSep])) context-menu-items)])       
 
 (defn on-page-change [event]
-  (js/console.log "onPageChange")
   (let [page-number (.-pageNumber event)
         page-size (.-pageSize event)]
   (rf/dispatch [::on-page-change page-number page-size])))
@@ -171,11 +170,6 @@
                     (fn [m k v] (assoc m k (highlite v k pattern)))
                      {}))))))
 
-(defn console-log-pipe [data]
-  (js/console.log "datax" (str data))
-  data
-  )
-
 (defn data-view [data filter-text-like locale]
       (-> data
          ((partial mapping-data-from-back locale))
@@ -184,10 +178,7 @@
               (let [pattern (js/RegExp. ftl "gi")]
                 (-> data
                     ((partial filter-data pattern))
-                    ((partial highlite-data pattern))
-;;                    ((fn [data] nil))
-                    console-log-pipe 
-                    ))
+                    ((partial highlite-data pattern))))
               data)))))
 
 (def kw->rc-easy-ui-class {:TextBox TextBox
@@ -254,48 +245,60 @@
        :buttonIconCls "icon-filter" 
        :onChange #(rf/dispatch [::update-filter-text-like %])}]]])))
 
-(defn log-pipe [name data]
-  (js/console.log name (str data))
-  data)
-
 (defn entry [locale parent-state]
-  (let [state @(rf/subscribe [::state])
-        data (:data state)
-        {:keys [selection total page-size page-number loading]} state]
-    [:div {:id anchors/datagrid-table
+  (let [state             @(rf/subscribe [::state])
+        {:keys [selection
+                total
+                page-size
+                page-number
+                loading
+                data]}    state
+        rows-after-filter (data-view data (:filter-text-like state) locale)
+        rows-in-datagrid  (if (empty? rows-after-filter)
+                            [{"no_rows_message" "Please, change search or filtering criteria and try again"}]
+                            rows-after-filter)]
+    [:div {:id     anchors/datagrid-table
            :fields "#,patient_name,birth_date,gender,policy_number,address"}
-     [:> DataGrid {:data ((partial log-pipe "data-view") (data-view data (:filter-text-like state) locale))
-                   :style {:height "100%"}
-                   :selectionMode "single"
-                   :toolbar (partial datagrid-toolbar locale state parent-state)
-                   :selection selection
-                   :idField "uuid"
-                   :pageSize page-size
-                   :total total
-                   :pageNumber page-number
-                   :loading loading
-                   :defaultLoadMsg (get-in locale [:datagrid :loadMsg])
-                   :pagination true
-                   :lazy true
-                   :pagePosition "bottom"
-                   :pageOptions {:layout ["list" "sep" "first" "prev" "sep" "tpl" "sep" "next" "last" "sep" "refresh" "info" "links"]
-                                 :displayMsg (get-in locale [:datagrid :displayMsg])
-                                 :pageList [35 100]}
-                   :onRowContextMenu (fn [rowEvent]
-                                       (-> rowEvent .-originalEvent .preventDefault)
-                                       (rf/dispatch [::on-row-context-menu rowEvent]))
-                   :onRowClick (fn [datagrid-row] (rf/dispatch [::on-row-click datagrid-row]))
-                   :onPageChange on-page-change}
-    [:> GridColumn {:width "40px"  :title "#" :align "center"  :render #(inc (.-rowIndex %))}]
-    [:> GridColumn {:width "400px" :field "patient_name"
-                    :title (:patient-name locale)}]
-    [:> GridColumn {:width "140px" :align "center" :field "birth_date"
-                    :title (:birth-date locale)}]
-    [:> GridColumn {:width "100px"  :field "gender" :align "center"
-                    :title (:gender locale)}]
-    [:> GridColumn {:width "220px" :align "center" :field "policy_number"
-                    :title (:policy-number locale)}]
-    [:> GridColumn {:width "100%"  :field "address"
-                    :title (:address locale) }]]
+     (into [:> DataGrid {:data             rows-in-datagrid
+                         :style            {:height "100%"}
+                         :selectionMode    "single"
+                         :toolbar          (partial datagrid-toolbar locale state parent-state)
+                         :selection        selection
+                         :idField          "uuid"
+                         :pageSize         page-size
+                         :total            total
+                         :pageNumber       page-number
+                         :loading          loading
+                         :defaultLoadMsg   (get-in locale [:datagrid :loadMsg])
+                         :pagination       true
+                         :lazy             true
+                         :pagePosition     "bottom"
+                         :pageOptions      {:layout ["list" "sep" "first"
+                                                     "prev" "sep" "tpl"
+                                                     "sep" "next" "last"
+                                                     "sep" "refresh" "info" "links"]
+                                            :displayMsg (get-in locale [:datagrid :displayMsg])
+                                            :pageList   [35 100]}
+                         :onRowContextMenu (fn [rowEvent]
+                                             (-> rowEvent .-originalEvent .preventDefault)
+                                             (rf/dispatch [::on-row-context-menu rowEvent]))
+                         :onRowClick       (fn [datagrid-row] (rf/dispatch [::on-row-click datagrid-row]))
+                         :onPageChange     on-page-change}]
+
+           (if (-> rows-in-datagrid
+                   first
+                   (get "no_rows_message"))
+             [[:> GridColumn {:width "40px" :title "No data for display" :align "center" :field "no_rows_message"}]]
+             [[:> GridColumn {:width "40px" :title "#" :align "center" :render #(inc (.-rowIndex %))}]
+              [:> GridColumn {:width "400px" :field "patient_name"
+                              :title (:patient-name locale)}]
+              [:> GridColumn {:width "140px" :align "center" :field "birth_date"
+                              :title (:birth-date locale)}]
+              [:> GridColumn {:width "100px" :field "gender" :align "center"
+                              :title (:gender locale)}]
+              [:> GridColumn {:width "220px" :align "center" :field "policy_number"
+                              :title (:policy-number locale)}]
+              [:> GridColumn {:width "100%" :field "address"
+                              :title (:address locale) }]]))
      (when (-> state :show-context-menu :show)
        [context-menu (-> state :show-context-menu) locale])]))
