@@ -12,3 +12,4 @@ target
 .clj-kondo
 .lsp
 k8s/chart/charts
+.cpcache
