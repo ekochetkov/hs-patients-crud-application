@@ -10,6 +10,7 @@
                         FormField]]
    [common.patients]
    [frontend.rf-nru-nwd :as rf-nru-nwd :refer [reg-sub]]
+   [common.ui-anchors.patients.dialog-update :as anchors]   
    [frontend.comm :as comm]
    [re-frame.core :as rf]))
 
@@ -66,7 +67,14 @@
 
 (defn- create-form-field [locale model f-name f-data f-value]
   (let[{:keys [name rc-input-class rc-input-attrs]} f-data
-       get-fn (get-in model [:converts name :get] #(-> %))]
+       get-fn (get-in model [:converts name :get] #(-> %))
+       rc-input-attrs (rc-input-attrs locale)]
+    [:span {:id name :type "field" :fieldtype
+            (case rc-input-class
+              :TextBox (if (:multiline rc-input-attrs)
+                          "TextArea"
+                          "TextBox")
+              rc-input-class)}
   [:> FormField {:name name
                  :labelAlign "right"
                  :labelWidth "160px"
@@ -76,7 +84,7 @@
          :DateBox DateBox
          :ComboBox ComboBox
          :MaskedBox MaskedBox)
-    (assoc (rc-input-attrs locale) :value (get-fn f-value)) ]]))
+    (assoc rc-input-attrs :value (get-fn f-value)) ]]]))
 
 (defn- form [locale state patient-model]
   (let [form-data (:form-data state)]
@@ -94,9 +102,10 @@
 (defn- footer [locale state]
   (let [button-update-disabled (:is-valid-form-data state)]
     [:div {:className "dialog-button"}
+      [:span {:id anchors/footer-save-button}
       [:> LinkButton {:disabled (not button-update-disabled)
                       :onClick on-update-button-click
-                      :style {:width "80px"}} (:dialog-update.button-update locale)]]))
+                      :style {:width "80px"}} (:dialog-update.button-update locale)]]]))
     
 (defn entry [locale patient-model]
   (let [state @(rf/subscribe [::state])
@@ -108,6 +117,9 @@
        :onClose on-dialog-close
        :style {:width "550px"}}
       [:div
-       {:style {:padding "30px 20px"} :className "f-full"}
+       {:id anchors/dialog-form
+        :style {:padding "30px 20px"} :className "f-full"}
         [form locale state patient-model]]
-        [footer locale state]]))
+      [footer locale state]]))
+
+       

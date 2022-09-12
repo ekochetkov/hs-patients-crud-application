@@ -8,6 +8,8 @@
    [frontend.rf-nru-nwd :refer [reg-sub]]
    [frontend.patients.datagrid :as datagrid]
    [frontend.patients.filter-panel :as filter-panel]
+   [common.ui-anchors.patients.core :as anchors] 
+   [common.ui-anchors.core :refer [make-anchor]]   
    [frontend.patients.dialog-create :as dialog-create]
    [frontend.patients.dialog-update :as dialog-update]
    [frontend.patients.dialog-delete :as dialog-delete]
@@ -149,6 +151,7 @@
                         :onCollapse #(rf/dispatch [::show-filter-panel :close])                        
                         :collapsed (not show-filter-panel)
                         :style {:width "305px"}}
+        (make-anchor anchors/search-panel)
         [filter-panel/entry locale]]
 
    [:> LayoutPanel {:region "center" :style {:height "100%"}}

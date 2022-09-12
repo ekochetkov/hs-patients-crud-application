@@ -9,7 +9,8 @@
                         ComboBox
                         FormField]]
    [common.patients]
-   [frontend.comm :as comm]   
+   [frontend.comm :as comm]
+   [common.ui-anchors.patients.dialog-create :as anchors]
    [frontend.rf-nru-nwd :as rf-nru-nwd :refer [reg-sub]]   
    [frontend.utils :refer [with-id]]
    [re-frame.core :as rf]))
@@ -63,8 +64,14 @@
   (rf/dispatch [::send-event-create]))
 
 (defn- create-form-field [locale f-name f-data]
-  (let[{:keys [name rc-input-class rc-input-attrs]} f-data]
-    (with-id name
+  (let[{:keys [name rc-input-class rc-input-attrs]} f-data
+       rc-input-attrs (rc-input-attrs locale)]
+    [:span {:id name :type "field" :fieldtype
+            (case rc-input-class
+              :TextBox (if (:multiline rc-input-attrs)
+                          "TextArea"
+                          "TextBox")
+              rc-input-class)}
       [:> FormField {:name name
                  :labelAlign "right"
                  :labelWidth "160px"
@@ -74,7 +81,7 @@
              :DateBox DateBox
              :ComboBox ComboBox
              :MaskedBox MaskedBox)
-            (rc-input-attrs locale)]])))
+            rc-input-attrs]]]))
 
 (defn- form [locale state patient-model]
   (let [form-data (:form-data state)]
@@ -93,7 +100,7 @@
 (defn- footer [locale state]
   (let [button-create-disabled (:is-valid-form-data state)]
     [:div {:className "dialog-button"}
-     (with-id "patients-dialog_create-button-create"
+     (with-id anchors/footer-add-button
        [:> LinkButton {:disabled (not button-create-disabled)
                       :onClick on-create-button-click
                       :style {:width "80px"}} (:dialog-create.button-create locale)])]))
@@ -101,13 +108,16 @@
 (defn entry [locale patient-model]
   (let [state @(rf/subscribe [::state])
         closed (:dialog-closed state)]
-    [:> Dialog
-     {:title (:dialog-create.caption locale)
-      :closed closed
-      :modal true
-      :onClose on-dialog-close
-      :style {:width "550px"}}
-     [:div
-      {:style {:padding "30px 20px"} :className "f-full"}
-       [form locale state patient-model]]
-       [footer locale state]]))
+     [:> Dialog
+      {:title (:dialog-create.caption locale)
+       :closed closed
+       :id "ddeffd"
+       :modal true
+       :onClose on-dialog-close
+       :style {:width "550px"}}
+      [:div
+       {:id anchors/dialog-form
+        :type :form
+        :style {:padding "30px 20px"} :className "f-full"}
+        [form locale state patient-model]]
+        [footer locale state]]))
