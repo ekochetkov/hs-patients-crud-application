@@ -17,11 +17,11 @@
 (rf/reg-event-fx ::send-event-delete
   (fn [cofx [_ selection]]
     (let [uuid (:uuid selection)]
-        (assoc cofx :fx [[:dispatch [::comm/send-event ::delete [:patients/delete uuid]]]]))))
+        (assoc {:db (:db cofx)} :fx [[:dispatch [::comm/send-event ::delete [:patients/delete uuid]]]]))))
 
 (rf/reg-event-fx ::delete
   (fn [cofx]
-    (-> cofx
+    (-> {:db (:db cofx)}
       (assoc-in [:db :dialog-closed] true)
       (assoc :fx [[:dispatch [:frontend.patients.datagrid/on-row-click {}]]
                   [:dispatch [:frontend.patients.datagrid/datagrid-reload]]]))))

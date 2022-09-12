@@ -58,7 +58,7 @@
 
 (rf/reg-event-fx ::reset-filters
    (fn [cofx]
-     (-> cofx
+     (-> {:db (:db cofx)}
         (assoc-in [:db :filters] {})
         (assoc :fx [[:dispatch [:frontend.patients.datagrid/update-where []]]]))))
 
@@ -67,7 +67,7 @@
   (fn [cofx]
     (let [filters (get-in cofx [:db :filters])
           where (build-where-by-filters filters)]
-      (assoc cofx :fx
+      (assoc {:db (:db cofx)} :fx
         [[:dispatch [:frontend.patients.datagrid/update-where where]]]))))
 
 (def kw->rc-easy-ui-class {:TextBox TextBox
@@ -86,6 +86,7 @@
 
 (defn form-field [name rc-input-class rc-input-attrs & childs]
   [:span {:id name
+          :key name
           :type "field"
           :fieldtype (rc-input-class->fieldtype rc-input-class
                                                 rc-input-attrs)}
@@ -97,6 +98,7 @@
              content] childs]
 
         [:span {:type "subfield"
+                :key sub-value
                 :value sub-value}
          [:> (kw->rc-easy-ui-class sub-rc-input-class)
              sub-rc-input-attrs
