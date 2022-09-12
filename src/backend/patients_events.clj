@@ -1,7 +1,7 @@
 (ns backend.patients-events
   (:require [schema.core :as s]
             [clojure.java.jdbc :as jdbc]
-            [backend.ws-events :refer [process-ws-event]]
+            [backend.ws :refer [ws-process-event]]
             [common.patients]
             [backend.db :as db]
             [honey.sql :as hsql])
@@ -22,16 +22,16 @@
    (s/required-key :deleted) (s/maybe s/Int)
    (s/required-key :resource) db-resource-schema})
 
-(defmethod process-ws-event :patients/create
-  [ctx _ [resource]]
-    (let [{db-spec :db-spec} ctx
+(defmethod ws-process-event :patients/create
+  [sys [_ resource]]
+    (let [{db-spec :db-spec} sys
           uuid (java.util.UUID/randomUUID)
           row-for-insert{ :uuid uuid :deleted nil :resource resource}]
       (s/validate db-row-schema row-for-insert)      
       (jdbc/insert! db-spec :patients row-for-insert) uuid))
 
-(defmethod process-ws-event :patients/update
-  [ctx _ [uuid modified-fields]]
+(defmethod ws-process-event :patients/update
+  [ctx [_ uuid modified-fields]]
   (let [{db-spec :db-spec} ctx
         source-row (first (jdbc/query db-spec
           ["select * from patients where uuid = ?" uuid]))        
@@ -40,28 +40,75 @@
       (s/validate db-row-schema target-row)      
       (jdbc/update! db-spec :patients {:resource (:resource target-row)} ["uuid = ?" uuid]) uuid))
 
-(defmethod process-ws-event :patients/delete
-  [ctx _ [uuid]]
-  (let [{db-spec :db-spec} ctx]
-     (jdbc/update! db-spec :patients
-        {:deleted (Timestamp/from (Instant/now))} ["uuid = ?::uuid" uuid])))
-
-(defmethod process-ws-event :patients/read
-  [ctx _ [where page-number page-size]]
+(defmethod ws-process-event :patients/delete
+  [ctx [_ uuid]]
   (let [{db-spec :db-spec} ctx
-        base-where [[:= :deleted nil]]
-        fields-type-cast {"birth_date" "bigint"}
-        resource-where (map (fn [[op field & args]]
-                         (into [op (db/pg->> "resource" field (get fields-type-cast field "text"))] args)) where)
-        query-data {:select [:uuid :resource]
-                    :from [:patients]
-                    :where (concat [:and] base-where resource-where)
-                    :limit page-size
-                    :offset (* page-size (dec page-number))}
-        query-count {:select [[:%count.*]]
-                     :from [:patients]
-                     :where (concat [:and] base-where resource-where)}]
-    {:total (-> (jdbc/query db-spec (hsql/format query-count)) first :count)
-     :page-number page-number
-     :page-size page-size
-     :rows (jdbc/query db-spec (hsql/format query-data) {:keywordize? false})}))
+        select-query ["select * from patients where uuid = ?" uuid]
+        deleted-row (first (jdbc/query db-spec select-query))]
+    
+    (when (nil? deleted-row)
+      (throw (Exception. (str "Record for " uuid " not found"))))
+
+    (when (inst? (:deleted deleted-row))
+      (throw (Exception. (format "Record %s already deleted at %s"
+                                 uuid
+                                 (:deleted deleted-row)))))    
+    
+     (jdbc/update! db-spec :patients
+                   {:deleted (Timestamp/from (Instant/now))} ["uuid = ?::uuid" uuid]))
+  :success-deleted)
+
+(defn build-where [front-where]
+  (let [fields-type-cast {"birth_date" "bigint"}]
+    (->> front-where
+         (map (fn [[op field & args]]
+                (let [field-pg-type (get fields-type-cast field "text")]
+                  (into [op (db/pg->> "resource" field field-pg-type)] args))))
+         (concat [:and [:= :deleted nil]])
+         vec)))
+
+(def read-global-limit 100)
+
+(defn build-data-query [opts where]
+  (let [page-number    (or (:page-number opts) 1)
+        page-size-need (or (:page-size opts) 30)
+        page-size      (if (< page-size-need read-global-limit)
+                    page-size-need
+                    read-global-limit)]
+    {:select [:uuid :resource]
+     :from   [:patients]
+     :where  where
+     :limit  page-size
+     :offset (* page-size (dec page-number))}))
+
+(defn build-count-query [where]
+  {:select [[:%count.*]]
+   :from [:patients]
+   :where where})
+
+(defmethod ws-process-event :patients/read
+  [ctx [_ opts]]
+  (let [where       (build-where (or (:where opts) {}))
+        data-query  (build-data-query opts where)
+        count-query (build-count-query where)
+        rows        (jdbc/query (:db-spec ctx)
+                         (hsql/format data-query)
+                         {:keywordize? false})
+        total       (-> (jdbc/query (:db-spec ctx)
+                                    (hsql/format count-query))
+                        first
+                        :count)
+        page-size   (:limit data-query)
+        page-number (let [req-page-number (inc (/ (:offset data-query)
+                                                  (:limit  data-query)))
+                          max-page-number (inc (int (/ total
+                                                       (:limit data-query))))]
+                      (if (<= req-page-number
+                              max-page-number)
+                        req-page-number
+                        max-page-number))
+        ]
+    {:total       total
+     :page-number page-number     
+     :page-size   page-size
+     :rows        rows}))

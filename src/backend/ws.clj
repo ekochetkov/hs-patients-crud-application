@@ -2,33 +2,58 @@
   (:require
    [org.httpkit.server :refer [send! as-channel]]
    [schema.core :as s]
+   [backend.rop :refer [=>>]]
    [clojure.edn]
-   [backend.ws-events :refer [process-ws-event]]
-   [backend.patients-events]
    [clojure.tools.logging :as log]))
 
-(defmethod process-ws-event :default [_ _ _]
-  (throw (Exception. "Event not found")))
+(defmulti ws-process-event
+  (fn [_ [event-name & _]] event-name))
 
-(defn ws-process-request [ctx msg-str]
+(defmethod ws-process-event :default [_ [event-name & _]]
+  (throw (Exception. (str "Event: '" event-name "' not found"))))
+
+(defn parse-edn-string [msg-str]
   (try
-    (let [message (clojure.edn/read-string msg-str)
-          event (:data message)
-          event-name (first event)
-          event-args (rest event)]
-          (s/validate [(s/one s/Keyword "keyword") s/Any] event)
-      (assoc message :data    
-        (try 
-          [event-name (process-ws-event ctx event-name event-args)]
-        (catch Exception e
-          [:comm/error
-           :exception-process-request
-           :details (.getMessage e)]))))
+    [(clojure.edn/read-string msg-str) nil]
     (catch Exception e
-      [:comm/error
-       :request-not-valid-edn-string
-       :details (.getMessage e)])))
-      
+      [nil [:comm/error {:code :request-not-valid-edn-string
+                         :message (.getMessage e)}]])))
+
+(defn validate-request-schema [message]
+  (let [event-schema   [(s/one s/Keyword "keyword") s/Any]
+        request-schema {(s/required-key :proto) s/Keyword
+                        (s/required-key :id)    java.util.UUID
+                        (s/required-key :data)  event-schema}]
+    (try
+      (s/validate request-schema message)
+      [message nil]
+    (catch Exception e
+      (let [error-info [:comm/error {:code    :request-schema-not-valid
+                                     :message (.getMessage e)}]]
+        [nil (if (and (:proto message) (:id message))
+               (assoc message :data error-info)
+               error-info)])))))
+
+(defn process-event-and-build-response [sys message]
+  (let [event (:data message)
+        event-name (first event)]
+    (try
+      (let [result (ws-process-event sys event)
+            data (if (sequential? result)
+                   (into [event-name] result)
+                   [event-name result])]
+      [(assoc message :data data) nil])
+    (catch Exception e
+      [nil (assoc message :data [:comm/error {:code :exception-process-request
+                                              :message (.getMessage e)}])]))))
+
+(defn ws-process-request [sys msg-str]
+  (let [[result error] (=>> msg-str
+                            parse-edn-string
+                            validate-request-schema
+                            (partial process-event-and-build-response sys))]
+    (or error result)))
+
 (defn handler [ctx ring-request]
   (as-channel ring-request
      {:on-receive (fn [ch msg-str]
