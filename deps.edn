@@ -24,7 +24,7 @@
                  cider/cider-nrepl             {:mvn/version "0.28.5"}
                  refactor-nrepl/refactor-nrepl {:mvn/version "3.5.3"}
                  io.github.yogthos/migratus    {:sha "5f3d947d79dc5ecfcc32ffdbca516e81de8b968a" :git/tag "v1.3.8"}
-                 io.github.ekochetkov/etaoin   {:sha "fc823f6ee4ea8a70d791ca525108bf2ded7354a3"}}
+                 io.github.ekochetkov/etaoin   {:sha "6be79b18bc12be170b88ef00b7f2a204c1768211"}}
    :extra-paths ["test"]
    :main-opts   ["-m" "nrepl.cmdline"
                  "--middleware" "[refactor-nrepl.middleware/wrap-refactor,cider.nrepl/cider-middleware]"
