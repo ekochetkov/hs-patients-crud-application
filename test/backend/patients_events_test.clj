@@ -1,221 +1,275 @@
 (ns backend.patients-events-test
   (:require
    [backend.context :refer [ctx]]
-   [backend.ws :as ws]
-   [backend.ws-events :refer [process-ws-event]]   
-   [backend.patients-events]
+   [backend.ws :as ws :refer [ws-process-event]]
+   [clojure.set :refer [intersection]]
+;;   [backend.ws-events :refer [process-ws-event]]   
+   [backend.patients-events :as pe]
+   [generators.patient :refer [gen-fake-patient
+                               gen-unique-fake-patients]]      
    [backend.db]
+   [schema.core :as schema]
    [clojure.java.jdbc :as jdbc]
-   [clojure.test :refer [deftest is]]))
+   [clojure.test :refer [deftest is use-fixtures]]))
+
+;; Check result schemas
+
+(def create-event-result-schema
+  java.util.UUID)
+
+(def update-event-result-schema
+  java.util.UUID)  
+
+(def delete-event-result-schema
+  :success-deleted)
+
+(def read-event-result-schema
+  {(schema/required-key :total)       schema/Int
+   (schema/required-key :page-number) schema/Int
+   (schema/required-key :page-size)   schema/Int
+   (schema/required-key :rows)        (schema/maybe [{schema/Keyword schema/Any}])})
+
+(deftest create-event-result-schema-testo
+  (let [patient      (:db (gen-fake-patient))
+        event        [:patients/create patient]
+        event-result (ws/ws-process-event ctx event)]    
+    (is (schema/validate create-event-result-schema
+                         event-result))))
+
+(deftest update-event-result-schema-test
+  (let [patient (:db (gen-fake-patient))        
+        uuid    (ws/ws-process-event ctx
+                                     [:patients/create patient])
+        event-result (ws/ws-process-event ctx
+                                          [:patients/update uuid {}])]
+    (is (schema/validate update-event-result-schema
+                         event-result))))
+
+(deftest delete-event-result-schema-test
+  (let [patient      (:db (gen-fake-patient))        
+        uuid         (ws/ws-process-event ctx
+                                     [:patients/create patient])
+        event-result (ws/ws-process-event ctx
+                                          [:patients/delete uuid])]
+    (is (= delete-event-result-schema
+           event-result))))
+
+(deftest read-event-empty-result-schema-test
+  (let [event        [:patients/read]
+        event-result (ws/ws-process-event ctx event)]
+    (is (schema/validate read-event-result-schema
+                         event-result))))
+
+(deftest read-event-not-empty-result-schema-test
+  (ws/ws-process-event ctx [:patients/create (:db (gen-fake-patient))])
+  (let [event        [:patients/read]
+        event-result (ws/ws-process-event ctx event)]
+    (is (schema/validate read-event-result-schema
+                         event-result))))
 
 (when (nil? (:db-spec ctx))
   (throw (Exception. "Need env var 'DATABASE_URL'")))
 
-(defn- clear-table-patients [{db-spec :db-spec}]
-  (jdbc/execute! db-spec "delete from patients"))
+(defn- count-table-patients [sys]
+  (:count (first (jdbc/query (:db-spec sys)"select count(*) from patients"))))
 
-(defn- count-table-patients [{db-spec :db-spec}]
-  (:count (first (jdbc/query (:db-spec ctx)"select count(*) from patients"))))
+(defn- table-patients-empty? [sys]
+  (= (:count (first (jdbc/query (:db-spec sys)"select count(*) from patients")))
+     0))
 
 (defn- get-by-id [{db-spec :db-spec} uuid]
   (first (jdbc/query db-spec ["select * from patients where uuid = ?" uuid])))
 
-(deftest positive-create-patient
-  (clear-table-patients ctx)
-  (let [resource {"gender" "male"
-                  "address" "New Zealand, Taranaki, Taupo, Bucs Road st. 2296" 
-                  "birth_date" 702604800
-                  "patient_name" "Brad Morris"
-                  "policy_number" "5492505115922541"}
-        request {:data [:patients/create resource]}
-        response (ws/ws-process-request ctx (str request))
-        inserted-uuid (-> response :data second)
-        inserted-row (get-by-id ctx inserted-uuid)]
-    
-    (when (= (-> response :data first) :comm/error)
-      (throw (Exception. (str response))))
+(defn fx-clear-db [f]    
+  (jdbc/execute! (:db-spec ctx) "delete from patients")
+  (f))
 
-    (is (= resource (:resource inserted-row)))))
+(use-fixtures :each fx-clear-db)
+
+;; Create
+
+(deftest positive-create-patient
+  (let [patient (:db (gen-fake-patient))
+        event [:patients/create patient]
+        inserted-uuid (ws/ws-process-event ctx event)
+        inserted-row (get-by-id ctx inserted-uuid)]
+    (is (= patient
+           (:resource inserted-row)))))
 
 (deftest negative-create-patient
-  (clear-table-patients ctx)
-  (let [resource {}
-        request {:data [:patients/create resource]}
-        response (ws/ws-process-request ctx (str request))]
-    (is (= (-> response :data first) :comm/error))
-    (is (= (count-table-patients ctx) 0))))
+  (let [event [:patients/create {}]]
+    (is (thrown? Exception (ws/ws-process-event ctx event)))
+    (is table-patients-empty?)))
+
+;; TODO: negative double
+
+;; Update
 
 (deftest positive-update-patient
-  (clear-table-patients ctx)  
-  (let [modified-fields {"patient_name" "Some new name"
+  (let [resource (:db (gen-fake-patient))
+        modified-fields {"patient_name" "Some new name"
                          "address" "Some new address"}
-        resource {"gender" "male"
-                  "address" "New Zealand, Taranaki, Taupo, Bucs Road st. 2296" 
-                  "birth_date" 702604800
-                  "patient_name" "Brad Morris"
-                  "policy_number" "5492505115922541"}
-        uuid (process-ws-event ctx :patients/create [resource])
-        request {:data [:patients/update uuid modified-fields]}
-        response (ws/ws-process-request ctx (str request))
+        uuid (ws-process-event ctx [:patients/create resource])
+        exist-row (get-by-id ctx uuid)
+        uuid (ws-process-event ctx [:patients/update uuid modified-fields])
         updated-row (get-by-id ctx uuid)]
 
-    (when (= (-> response :data first) :comm/error)
-      (throw (Exception. (str response))))
-    
+    (is (not= exist-row updated-row))
     (is (= (merge resource modified-fields)
            (:resource updated-row)))))
 
-(deftest negative-update-patient
-  (clear-table-patients ctx)  
-  (let [modified-fields {"address" nil}
-        resource {"gender" "male"
-                  "address" "New Zealand, Taranaki, Taupo, Bucs Road st. 2296" 
-                  "birth_date" 702604800
-                  "patient_name" "Brad Morris"
-                  "policy_number" "5492505115922541"}
-        uuid (process-ws-event ctx :patients/create [resource])
-        request {:data [:patients/update uuid modified-fields]}
-        response (ws/ws-process-request ctx (str request))
-        updated-row (get-by-id ctx uuid)]
+(deftest negative-update-not-exists-patient
+  (let [modified-fields {}
+        rnd-uuid (java.util.UUID/randomUUID)
+        update-event [:patients/update rnd-uuid modified-fields]]
+    (is (thrown? Exception
+                 (ws-process-event ctx update-event)))))
 
-    (is (= (-> response :data first) :comm/error))    
-    (is (= resource (:resource updated-row)))))
+(deftest negative-update-incorrect-data
+  (let [resource (:db (gen-fake-patient))
+        modified-fields {"address" nil}
+        uuid (ws-process-event ctx [:patients/create resource])
+        update-event [:patients/update uuid modified-fields]]
+    (is (thrown? Exception
+                 (ws-process-event ctx update-event)))))
 
+;; Delete
 
 (deftest positive-delete-patient
-  (clear-table-patients ctx)
-  (let [resource {"gender" "male"
-                  "address" "New Zealand, Taranaki, Taupo, Bucs Road st. 2296"
-                  "birth_date" 702604800
-                  "patient_name" "Brad Morris"
-                  "policy_number" "5492505115922541"}
-        uuid (process-ws-event ctx :patients/create [resource])
-        response (ws/ws-process-request ctx (str {:data [:patients/delete uuid]}))
-        added-row (get-by-id ctx uuid)
+  (let [uuid (ws-process-event ctx [:patients/create (:db (gen-fake-patient))])
+        created-row (get-by-id ctx uuid)                                    
+        deleted-result (ws/ws-process-event ctx [:patients/delete uuid])
         deleted-row (get-by-id ctx uuid)]
 
-    (when (= (-> response :data first) :comm/error)
-      (throw (Exception. (str response))))
-
-    (is (not (empty? added-row)))
-    (is (not (empty (:delted deleted-row))))
+    (is created-row)
+    (is (= deleted-result :success-deleted))
+    (is (inst? (get deleted-row :deleted)))
     (is (= (count-table-patients ctx) 1))))
 
+(deftest negative-delete-not-exists-patient
+  (let [rnd-uuid (java.util.UUID/randomUUID)
+        delete-event [:patients/delete rnd-uuid]]
+    (is (thrown? Exception
+                 (ws-process-event ctx delete-event)))))
+
+(deftest negative-delete-already-deleted-patient
+  (let [uuid (ws-process-event ctx [:patients/create (:db (gen-fake-patient))])
+        delete-event [:patients/delete uuid]]
+    (ws/ws-process-event ctx delete-event)    
+    (is (thrown? Exception
+                 (ws-process-event ctx delete-event)))))
+
+;; Read. where
+
+(deftest build-where-conditions-default
+  (is (= [:and [:= :deleted nil]]
+         (pe/build-where {}))))
+
+(deftest build-where-some-conditions
+  (let [conds [ [:=  "patient_name" "A"]
+                [:<= "birth_date" 10] ]]
+    (is (=
+         [:and [:= :deleted nil]
+               [:= [:raw "(resource->>'patient_name')::text"] "A"]
+               [:<= [:raw "(resource->>'birth_date')::bigint"] 10]          ]
+         (pe/build-where conds)))))
+
+(deftest build-data-query-default
+  (is (= (pe/build-data-query {} "where conds here")
+         {:select [:uuid :resource]
+          :from [:patients]
+          :where "where conds here"
+          :limit 30
+          :offset 0})))
+
+(deftest build-data-query-set-page-and-size
+  (is (= (pe/build-data-query {:page-size 45 :page-number 5} ["where conds here"])
+         {:select [:uuid :resource]
+          :from [:patients]
+          :where ["where conds here"]
+          :limit 45
+          :offset 180})))
+
+(deftest build-data-query-page-size-over-global-limit
+  (is (= (pe/build-data-query {:page-size 450} ["where conds here"])
+         {:select [:uuid :resource]
+          :from [:patients]
+          :where ["where conds here"]
+          :limit pe/read-global-limit
+          :offset 0})))
+
+(deftest build-count-query
+  (is (= (pe/build-count-query ["where conds here"])
+         {:select [[:%count.*]]
+          :from [:patients]
+          :where ["where conds here"]})))
+
+;; Read
+
+(deftest positive-simple-read
+  (let [total (inc (rand-int 10))
+        patients (map :db (gen-unique-fake-patients total))]
+        (doall (->> patients
+               (map #(ws-process-event ctx [:patients/create %]))))
+     (is (= total (count-table-patients ctx)))
+     (let [read-event [:patients/read {:page-size total}]
+           result (ws-process-event ctx read-event)
+           all-resources (->> result
+                              :rows
+                              (map :resource))]
+       (is (= ((juxt :total
+                     :page-size
+                     :page-number) result)
+              [total total 1]))
+       (is (= (set patients)
+              (set all-resources))))))
+
 (deftest positive-read-only-not-deleted-patients
-  (clear-table-patients ctx)
-  (let [resource {"gender" "male"
-                  "address" "New Zealand, Taranaki, Taupo, Bucs Road st. 2296"
-                  "birth_date" 702604800
-                  "patient_name" "Brad Morris"
-                  "policy_number" "5492505115922541"}
-        uuid-1 (process-ws-event ctx :patients/create [resource])
-        uuid-2 (process-ws-event ctx :patients/create [resource])
-        uuid (process-ws-event ctx :patients/delete [uuid-2])
-        response (ws/ws-process-request ctx (str {:data [:patients/read [] 1 10]}))]
+  (let [total (inc (rand-int 10))
+        patients (gen-unique-fake-patients total)
+        inserted-uuids (doall (->> patients
+                                   (map #(ws-process-event ctx [:patients/create (:db %)]))))
+        delete (inc (rand-int total))
+        uuids-for-delete (take delete inserted-uuids)]
 
-    (when (= (-> response :data first) :comm/error)
-      (throw (Exception. (str response))))
+    (is (= (count-table-patients ctx) total))  
     
-    (is (= (count-table-patients ctx) 2))
-    (is (= (-> response :data second :total) 1))))
+    (doall (->> uuids-for-delete
+                (map #(ws-process-event ctx [:patients/delete %]))))
 
-(deftest positive-read-filter-like-patient-name
-  (clear-table-patients ctx)
-  (let [resource-1 {"gender" "male"
-                    "address" "New Zealand, Taranaki, Taupo, Bucs Road st. 2296"
-                    "birth_date" 702604800
-                    "patient_name" "Brad Morris"
-                    "policy_number" "5492505115922541"}
-        uuid-1 (process-ws-event ctx :patients/create [resource-1])
-        resource-2 {"gender" "male"
-                    "address" "New Zealand, Taranaki, Taupo, Bucs Road st. 2296"
-                    "birth_date" 702604800
-                    "patient_name" "Jack Jackson"
-                    "policy_number" "5492505115922541"}
-        uuid-2 (process-ws-event ctx :patients/create [resource-2])
-        response (ws/ws-process-request ctx (str {:data [:patients/read [[:like "patient_name" "%Mor%" ]]
-                                                                        1 10]}))]
+    (let [read-event [:patients/read {:page-size total}]
+          result (ws-process-event ctx read-event)
+          viewed-uuids (->> result
+                            :rows
+                            (map :uuid))]    
 
-    (when (= (-> response :data first) :comm/error)
-      (throw (Exception. (str response))))
+      (is (= (+ (count uuids-for-delete)
+                (count viewed-uuids))
+             total))
 
-    (is (= (:resource (get-by-id ctx uuid-1))
-           (:resource (first (-> response :data second :rows)))))
+      (is (empty? (intersection (set uuids-for-delete)
+                                (set viewed-uuids)))))))
 
-    (is (= (count-table-patients ctx) 2))
-    (is (= (-> response :data second :total) 1))))
 
-(deftest positive-read-filter-like-address
-  (clear-table-patients ctx)
-  (let [resource-1 {"gender" "male"
-                    "address" "New Zealand, Taranaki, Taupo, Bucs Road st. 2296"
-                    "birth_date" 702604800
-                    "patient_name" "Brad Morris"
-                    "policy_number" "5492505115922541"}
-        uuid-1 (process-ws-event ctx :patients/create [resource-1])
-        resource-2 {"gender" "male"
-                    "address" "New Zealand, Taranaki, Taupo, Bucs Road st. 2296"
-                    "birth_date" 702604800
-                    "patient_name" "Jack Jackson"
-                    "policy_number" "5492505115922541"}
-        uuid-2 (process-ws-event ctx :patients/create [resource-2])
-        response (ws/ws-process-request ctx (str {:data [:patients/read [[:like "address" "%upo%" ]] 1 10]}))]
+(deftest positive-read-pagitator-answer-simple-test
+  (let [total    20
+        patients (gen-unique-fake-patients total)]
+     
+    (doall (->> patients
+                (map #(ws-process-event ctx [:patients/create (:db %)]))))
+    
+    (is (= (count-table-patients ctx) total))
+    
+    (let [r-1    (ws-process-event ctx [:patients/read {:page-number  1 :page-size  5}])
+          r-2    (ws-process-event ctx [:patients/read {:page-number  2 :page-size 10}])
+          r-over (ws-process-event ctx [:patients/read {:page-number 10 :page-size 40}])]
 
-    (when (= (-> response :data first) :comm/error)
-      (throw (Exception. (str response))))
 
-    (is (= (count-table-patients ctx) 2))
-    (is (= (-> response :data second :total) 2))))
+      (is (= {:total total :page-number 1 :page-size 5}
+             (dissoc r-1 :rows)))
 
-(deftest positive-read-filter-birth-date-eq
-  (clear-table-patients ctx)
-  (let [resource-1 {"gender" "male"
-                    "address" "New Zealand, Taranaki, Taupo, Bucs Road st. 2296"
-                    "birth_date" 1656979200
-                    "patient_name" "Brad Morris"
-                    "policy_number" "5492505115922541"}
-        uuid-1 (process-ws-event ctx :patients/create [resource-1])
-        resource-2 {"gender" "male"
-                    "address" "New Zealand, Taranaki, Taupo, Bucs Road st. 2296"
-                    "birth_date" 1656892800
-                    "patient_name" "Jack Jackson"
-                    "policy_number" "5492505115922541"}
-        uuid-2 (process-ws-event ctx :patients/create [resource-2])
-        response (ws/ws-process-request ctx (str {:data [:patients/read
-                                                         [[:= "birth_date" 1656892800]]
-                                                         1 10]}))]
+      (is (= {:total total :page-number 2 :page-size 10}
+             (dissoc r-2 :rows)))
 
-    (when (= (-> response :data first) :comm/error)
-      (throw (Exception. (str response))))
-
-    (is (= (:resource (get-by-id ctx uuid-2))
-           (:resource (first (-> response :data second :rows)))))
-
-    (is (= (-> response :data second :total) 1)))
-    (is (= (count-table-patients ctx) 2)))
-
-(deftest positive-read-filter-birth-date-after
-  (clear-table-patients ctx)
-  (let [resource-1 {"gender" "male"
-                    "address" "New Zealand, Taranaki, Taupo, Bucs Road st. 2296"
-                    "birth_date" 1656979200
-                    "patient_name" "Brad Morris"
-                    "policy_number" "5492505115922541"}
-        uuid-1 (process-ws-event ctx :patients/create [resource-1])
-        resource-2 {"gender" "male"
-                    "address" "New Zealand, Taranaki, Taupo, Bucs Road st. 2296"
-                    "birth_date" 1656892800
-                    "patient_name" "Jack Jackson"
-                    "policy_number" "5492505115922541"}
-        uuid-2 (process-ws-event ctx :patients/create [resource-2])
-        response (ws/ws-process-request ctx (str {:data [:patients/read [[:> "birth_date" 1656892810]] 1 10]}))]
-
-    (when (= (-> response :data first) :comm/error)
-      (throw (Exception. (str response))))
-
-    (is (= (:resource (get-by-id ctx uuid-1))
-           (:resource (first (-> response :data second :rows)))))
-
-    (is (= (count-table-patients ctx) 2))
-    (is (= (-> response :data second :total) 1))))
-
+      (is (= {:total total :page-number 1 :page-size 40}
+             (dissoc r-over :rows))))))

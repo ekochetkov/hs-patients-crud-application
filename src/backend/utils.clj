@@ -1,7 +1,7 @@
 (ns backend.utils
   (:require
    [backend.context :refer [ctx]]
-   [backend.ws-events :refer [process-ws-event]]
+   [backend.ws :refer [ws-process-event]]
    [backend.patients-events]   
    [backend.db]
    [clojure.data.json :as json]
@@ -34,6 +34,6 @@
                                   "address" (get row "Address")
                                   "policy_number" (str (get row "oms"))
                                   "birth_date" (date->epoch (get row "DateOfBirth"))}]
-                    (process-ws-event ctx :patients/create [resource]))))))))))
+                    (ws-process-event ctx :patients/create [resource]))))))))))
 
 

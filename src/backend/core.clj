@@ -6,8 +6,8 @@
    [org.httpkit.server :refer [run-server]]
    [compojure.core :refer [defroutes GET]]
    [compojure.route :refer [resources]]
-   [clojure.edn]
-   [backend.ws :as ws]))
+   [backend.ws :as ws]
+   [backend.patients-events]))
 
 (defonce server-stop-func (atom nil))
 

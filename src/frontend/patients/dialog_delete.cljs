@@ -6,7 +6,8 @@
    [goog.string.format]
    [frontend.comm :as comm]   
    [frontend.utils :refer [ts->human-date]]   
-   [frontend.rf-nru-nwd :as rf-nru-nwd :refer [reg-sub]]   
+   [frontend.rf-nru-nwd :as rf-nru-nwd :refer [reg-sub]]
+   [common.ui-anchors.patients.dialog-delete :as anchors]
    [re-frame.core :as rf]))
 
 (def init-state {:dialog-closed true})
@@ -44,21 +45,22 @@
 
 (defn entry [selection {:keys [dialog-delete human-date-format]}]
   (let [state @(rf/subscribe [::state])
-        closed (:dialog-closed state)
-        
-        ]
+        closed (:dialog-closed state)]
       [:> Dialog
         {:closed closed
          :onClose on-dialog-close
          :title (:caption dialog-delete)
          :modal true}
-        [:div {:style {:padding "30px 20px"} :className "f-full"}
+       [:div {:id anchors/dialog
+              :style {:padding "30px 20px"} :className "f-full"}
          [:p (gstring/format "%s: %s (%s)?"
                (:text dialog-delete)      
                (get-in selection [:resource "patient_name"])
                (ts->human-date (get-in selection [:resource "birth_date"]) human-date-format))]]
-     [:div {:className "dialog-button"}
-      [:> LinkButton {:onClick (partial on-click-yes selection)
-                      :style {:float "left" :width "80px"}} (:yes dialog-delete)]        
-      [:> LinkButton {:onClick on-click-no
-                      :style {:width "80px"}} (:no dialog-delete)]]]))
+       [:div {:className "dialog-button"}
+        [:span {:id anchors/button-conform}
+         [:> LinkButton {:onClick (partial on-click-yes selection)
+                         :style {:float "left" :width "80px"}} (:yes dialog-delete)]]
+        [:span {:id anchors/button-cancel}
+         [:> LinkButton {:onClick on-click-no
+                      :style {:width "80px"}} (:no dialog-delete)]]]]))

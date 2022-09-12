@@ -1,14 +1,20 @@
 (ns frontend.patients.datagrid
   (:require
-   ["rc-easyui" :refer [MenuSep DataGrid GridColumn LinkButton SearchBox Menu MenuItem]]
+   ["rc-easyui" :refer [MenuSep DataGrid GridColumn LinkButton SearchBox Menu MenuItem LinkButton
+                        TextBox
+                        DateBox
+                        MaskedBox
+                        ButtonGroup]]
    [reagent.core :as r]
+   [common.ui-anchors.core :as ui-anchors]
    [clojure.string :refer [join]]
    [common.patients]
+   [common.ui-anchors.patients.datagrid :as anchors]
    [frontend.rf-nru-nwd :as rf-nru-nwd :refer [reg-sub]]   
-   [frontend.utils :refer [with-id ts->human-date]]
+   [frontend.utils :refer [ts->human-date]]
    [frontend.comm :as comm]
    [re-frame.core :as rf]))
-
+;; TODO: add comment for using context menu for update, delete
 (def init-state {:filter-text-like nil
                  :selection nil                 
                  :loading false
@@ -16,8 +22,8 @@
                                      :position {:x nil :y nil}}
                  :where []
                  :data []
-                 :total 0
-                 :page-size 50
+                 :total -1
+                 :page-size 35
                  :page-number 1})
 
 (reg-sub ::state #(-> %))
@@ -27,7 +33,8 @@
 
 (rf/reg-event-fx ::update-where
   (fn [cofx [_ where]]
-     (-> cofx
+    (js/console.log "::update-where")
+    (-> cofx
          (assoc-in [:db :where] where)
          (assoc-in [:db :data] [])
          (assoc-in [:db :page-number] 1)
@@ -36,21 +43,29 @@
 
 (rf/reg-event-fx ::datagrid-reload
   (fn [cofx]
+    (js/console.log "::datagrid-reload")
     (let [{:keys [where page-number page-size]} (:db cofx)]
       (-> cofx
         (assoc-in [:db :loading] true)
-        (assoc :fx [[:dispatch [::comm/send-event ::read [:patients/read where page-number page-size]]]])))))
+        (assoc :fx [[:dispatch [::comm/send-event ::read [:patients/read {:where       where
+                                                                          :page-number page-number
+                                                                          :page-size   page-size}]]]])))))
 
 (rf/reg-event-fx ::on-page-change
   (fn [cofx [_ page-number page-size]]
-    (-> cofx
-      (assoc-in [:db :page-number] page-number)
-      (assoc-in [:db :page-size] page-size)
-      (assoc :fx [[:dispatch [::datagrid-reload]]]))))
+;;    (js/console.log "::on-page-change" page-number page-size)
+    (when (or (not= page-number (get-in cofx [:db :page-number]))
+              (not= page-size   (get-in cofx [:db :page-size])))
+;;      (js/console.log "::on-page-change - real")
+      (-> cofx
+        (assoc-in [:db :page-number] page-number)
+        (assoc-in [:db :page-size] page-size)
+        (assoc :fx [[:dispatch [::datagrid-reload]]])))))
 
 ;; Receive data from back
 (rf/reg-event-db ::read
   (fn [state [_ [_ {:keys [total page-number page-size rows]}]]]
+    (js/console.log "ghf!!" (clj->js {"total" total "page-number" page-number "page-size" page-size}))
     (assoc state :data rows
                  :total total
                  :page-number page-number
@@ -91,20 +106,41 @@
  (fn [state]
    (assoc-in state [:show-context-menu :show] false)))                   
 
-(defn- context-menu [conf locale]
-  [:span {:onMouseLeave #(rf/dispatch [::on-hide-context-menu])}
-  [:> Menu {:inline true
+(def context-menu-items
+  (list
+   {:type :MenuItem
+    :id "anchor-update"
+    :rc-attrs (fn [locale] {:text (:action.update locale)
+                            :value "update"
+                            :iconCls "icon-edit"})}
+   {:type :MenuSep}
+   {:type :MenuItem    
+    :id "anchor-delete"
+    :rc-attrs (fn [locale] {:text (:action.delete locale)
+                            :value "delete"
+                            :iconCls "icon-cancel"})}))
+
+(defn context-menu [conf locale]
+  (js/console.log "xxxd" ;;(clj->js context-menu-items)
+
+                  (join ";" (map :id context-menu-items))
+
+                  )
+;;  (js-debugger)
+  [:span {:id "dds" :items "s,d,f"    
+          :onMouseLeave #(rf/dispatch [::on-hide-context-menu])}
+   (into [:> Menu {:inline true
+                   :attrs {:id "ghgh"}
             :onItemClick #(rf/dispatch [::on-context-menu-item-click %])
             :style {:position "fixed"
                     :left (-> conf :position :x)
-                    :top  (-> conf :position :y)}}
-   [:> MenuItem {:text (:action.update locale)
-                 :value "update"
-                 :iconCls "icon-edit"}]
-   [:> MenuSep]
-   [:> MenuItem {:text (:action.delete locale)
-                 :value "delete"
-                 :iconCls "icon-cancel"}]]])
+                    :top  (-> conf :position :y)}}]
+        (map #(case (:type %)
+                :MenuItem [:> MenuItem ((:rc-attrs %) locale)]
+                :MenuSep [:> MenuSep])) context-menu-items)])
+        
+
+
 
 (defn on-page-change [event]
   (js/console.log "onPageChange")
@@ -143,11 +179,17 @@
                 % "</span>"))}}]) value)) 
 
 (defn- highlite-data [pattern data]
+  (js/console.log "high" (str data))
   (->> data
        (map (fn [row]
                (->> row (reduce-kv
                     (fn [m k v] (assoc m k (highlite v k pattern)))
                      {}))))))
+
+(defn console-log-pipe [data]
+  (js/console.log "datax" (str data))
+  data
+  )
 
 (defn data-view [data filter-text-like locale]
       (-> data
@@ -157,47 +199,103 @@
               (let [pattern (js/RegExp. ftl "gi")]
                 (-> data
                     ((partial filter-data pattern))
-                    ((partial highlite-data pattern))))
+                    ((partial highlite-data pattern))
+;;                    ((fn [data] nil))
+                    console-log-pipe 
+                    ))
               data)))))
 
-(defn- toolbar-buttons [locale {:keys [filter-text-like loading]} {:keys [show-filter-panel]}]
-  [{:id "patients-datagrid-toolbar-button-add"
-    :caption (:action.add locale) :class :LinkButton :iconCls "icon-add" :style {:margin "5px" :width "100px"}
-    :onClick #(rf/dispatch [:frontend.patients.dialog-create/show-dialog])}
-    
-   {:id "patients-datagrid-toolbar-button-reload"
-    :caption (:action.reload locale) :class :LinkButton :iconCls "icon-reload" :style {:margin "5px" :width "100px"}
-    :disabled loading
-    :onClick #(rf/dispatch [::datagrid-reload])}
+(def kw->rc-easy-ui-class {:TextBox TextBox
+                           :DateBox DateBox
+                           :ButtonGroup ButtonGroup
+                           :LinkButton LinkButton
+                           :SearchBox SearchBox
+                           :MaskedBox MaskedBox})
 
-   {:id "patients-datagrid-toolbar-button-filter"
-    :caption (:action.filter locale) :class :LinkButton :iconCls "icon-search" :style {:margin "5px" :width "100px"}
-    :toggle true
-    :selected show-filter-panel
-    :onClick #(rf/dispatch [:frontend.patients/show-filter-panel])}
-   
-   {:class :SearchBox :style {:float "right" :margin "5px" :width "350px"}
-    :value filter-text-like
-    :buttonIconCls "icon-filter"
-    :onChange #(rf/dispatch [::update-filter-text-like %])}])
+(defn rc-input-class->fieldtype
+  [rc-input-class rc-input-attrs]
+     (case rc-input-class
+        :TextBox (if (:multiline rc-input-attrs)
+                        "TextArea"
+                        "TextBox")
+        rc-input-class))
 
-(defn- datagrid-toolbar [locale state parent-state]
-  (r/as-element (into [:div]
-     (for [tb (toolbar-buttons locale state parent-state)]
-       (with-id (:id tb)
-        [:> (case (:class tb)
-               :LinkButton LinkButton
-               :SearchBox SearchBox) tb (:caption tb)])))))
+(defn form-field [name rc-input-class rc-input-attrs & childs]
+  [:span {:id name
+          :type "field"
+          :fieldtype (rc-input-class->fieldtype rc-input-class
+                                                rc-input-attrs)}
+     [:> (kw->rc-easy-ui-class rc-input-class)
+      rc-input-attrs
+      (for [[sub-value
+             sub-rc-input-class
+             sub-rc-input-attrs
+             content] childs]
+
+        [:span {:type "subfield"
+                :value sub-value}
+         [:> (kw->rc-easy-ui-class sub-rc-input-class)
+             sub-rc-input-attrs
+             content]])]])
+
+(defn datagrid-toolbar [locale state parent-state]
+  (let [{:keys [filter-text-like loading]} state
+        {:keys [show-filter-panel]} parent-state]
+  (r/as-element
+   [:div
+    ;; Add
+    [ui-anchors/make-anchor anchors/toolbar-patient-add-button
+      [:> LinkButton {:iconCls "icon-add" :style {:margin "5px" :width "100px"}
+                      :onClick #(rf/dispatch [:frontend.patients.dialog-create/show-dialog])}
+       (:action.add locale)]]
+    ;; Reload
+    [ui-anchors/make-anchor anchors/toolbar-reload-page
+     [:> LinkButton {:iconCls "icon-reload" :style {:margin "5px" :width "100px"}
+                     :disabled loading
+                     :onClick #(rf/dispatch [::datagrid-reload])}
+      (:action.reload locale)]]
+    ;; Search
+    [ui-anchors/make-anchor anchors/toolbar-search-button
+     [:> LinkButton {:iconCls "icon-search" :style {:margin "5px" :width "100px"}
+                     :toggle true
+                     :selected show-filter-panel
+                     :onClick #(rf/dispatch [:frontend.patients/show-filter-panel])}
+      (:action.filter locale)]]
+    ;; Filter
+    [ui-anchors/make-anchor anchors/toolbar-filter-box
+     [form-field "filter_box" :SearchBox
+      {:style {:float "right" :margin "5px" :width "350px"}
+       :value filter-text-like
+       :buttonIconCls "icon-filter" 
+       :onChange #(rf/dispatch [::update-filter-text-like %])}]]])))
 
 (defn on-click [context-event row]
   (js/console.log context-event row))
+
+(defn xxd []
+  (js-debugger)
+  [:> Menu {:inline true}
+   [:> MenuSep]
+   [:> MenuItem {:text "text ......"
+                            :value "delete"
+                            :iconCls "icon-cancel"}]])
+
+
+(defn log-pipe [name data]
+  (js/console.log name (str data))
+  data
+  )
 
 (defn entry [locale parent-state]
   (let [state @(rf/subscribe [::state])
         data (:data state)
         {:keys [selection total page-size page-number loading]} state]
-    [:div
-     [:> DataGrid {:data (data-view data (:filter-text-like state) locale)
+    (js/console.log "ghf" total loading (str data) (empty? data))
+    [:div {:id anchors/datagrid-table
+           :fields "#,patient_name,birth_date,gender,policy_number,address"}
+;;     (if (empty? data)
+;;     [:p "no data"]
+     [:> DataGrid {:data ((partial log-pipe "data-view") (data-view data (:filter-text-like state) locale))
                    :style {:height "100%"}
                    :selectionMode "single"
                    :toolbar (partial datagrid-toolbar locale state parent-state)
@@ -209,15 +307,18 @@
                    :loading loading
                    :defaultLoadMsg (get-in locale [:datagrid :loadMsg])
                    :pagination true
+                   :lazy true
                    :pagePosition "bottom"
                    :pageOptions {:layout ["list" "sep" "first" "prev" "sep" "tpl" "sep" "next" "last" "sep" "refresh" "info" "links"]
                                  :displayMsg (get-in locale [:datagrid :displayMsg])
-                                 :pageList [10 50 100]}
+                                 :pageList [35 100]}
                    :onRowContextMenu (fn [rowEvent]
                                        (-> rowEvent .-originalEvent .preventDefault)
                                        (rf/dispatch [::on-row-context-menu rowEvent]))
-                   :onRowClick (fn [datagrid-row] (rf/dispatch [::on-row-click datagrid-row]))}
-    
+                   :onRowClick (fn [datagrid-row] (rf/dispatch [::on-row-click datagrid-row]))
+                   :onPageChange on-page-change}
+
+;;    (when data
     [:> GridColumn {:width "40px"  :title "#" :align "center"  :render #(inc (.-rowIndex %))}]
     [:> GridColumn {:width "400px" :field "patient_name"
                     :title (:patient-name locale)}]
@@ -228,7 +329,12 @@
     [:> GridColumn {:width "220px" :align "center" :field "policy_number"
                     :title (:policy-number locale)}]
     [:> GridColumn {:width "100%"  :field "address"
-                    :title (:address locale) }]]
+                    :title (:address locale) }]
+
+;;    )
+    ]
+;;     ) 
+     
      (when (-> state :show-context-menu :show)
        [context-menu (-> state :show-context-menu) locale])
      ]))
