@@ -96,7 +96,7 @@ jobs:
           name: app.jar
           path: target/app.jar
 
-  Acceptence-test:
+  Acceptance-test-firefox:
     needs: [Pack-application]
     runs-on: ubuntu-latest
     env:
@@ -112,12 +112,6 @@ jobs:
           POSTGRESQL_DATABASE: clinic
         ports:
           - 5432:5432
-
-      chrome:
-        image: selenium/standalone-chrome:103.0
-        options: --add-host=host.docker.internal:host-gateway
-        ports:
-          - 4444:4444
 
       firefox:
         image: selenium/standalone-firefox:103.0
@@ -159,17 +153,78 @@ jobs:
             jdbc:postgresql://localhost:5432/clinic?user=user&password=userpass
         run: clojure -M:migrate
 
-      - name: Acceptence test in Chrome
-        env:
-          SELENIUM_GRID_HUB_URL: "http://127.0.0.1:4444/wd/hub"
-          SELENIUM_GRID_BROWSER: "chrome"
-        run: clojure -X:integration-test
-
       - name: Acceptence test in Firefox
         env:
           SELENIUM_GRID_HUB_URL: "http://127.0.0.1:4445/wd/hub"
           SELENIUM_GRID_BROWSER: "firefox"
-        run: clojure -X:integration-test
+        run: clojure -X:acceptance-test
+
+      - name: Stop app container
+        run: docker stop $(cat local-container-id)
+
+
+  Acceptance-test-chrome:
+    needs: [Pack-application]
+    runs-on: ubuntu-latest
+    env:
+      APP_URL: "http://host.docker.internal"
+    services:
+
+      db:
+        image: bitnami/postgresql:14.5.0-debian-11-r3
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRESQL_USERNAME: user
+          POSTGRESQL_PASSWORD: userpass
+          POSTGRESQL_DATABASE: clinic
+        ports:
+          - 5432:5432
+
+      chrome:
+        image: selenium/standalone-chrome:103.0
+        options: --add-host=host.docker.internal:host-gateway
+        ports:
+          - 4444:4444
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/download-artifact@v3
+        with:
+          name: app.jar
+
+      - name: Build app image
+        run: docker build -t local .
+
+      - name: Run app container
+        run: >-
+          docker run
+          --net=host
+          --env DATABASE_URL='jdbc:postgresql://localhost:5432/clinic?user=user&password=userpass'
+          --env PORT=80
+          --env WS_URL='ws://host.docker.internal/ws'
+          --detach local
+          > local-container-id
+
+      - name: Check app health
+        run: sleep 15s && curl localhost/health
+
+      - name: Install clojure tools
+        uses: DeLaGuardo/setup-clojure@9.3
+        with:
+          cli: 1.11.1.1149
+
+      - name: Migrate database schema
+        env:
+          DATABASE_URL: >-
+            jdbc:postgresql://localhost:5432/clinic?user=user&password=userpass
+        run: clojure -M:migrate
+
+      - name: Acceptence test in Chrome
+        env:
+          SELENIUM_GRID_HUB_URL: "http://127.0.0.1:4444/wd/hub"
+          SELENIUM_GRID_BROWSER: "chrome"
+        run: clojure -X:acceptance-test
 
       - name: Stop app container
         run: docker stop $(cat local-container-id)
