@@ -53,7 +53,7 @@
   :acceptance-test
   {:extra-paths ["test"]
    :extra-deps  {io.github.cognitect-labs/test-runner {:sha "a85b3b02765fb68684ab9ee4a8598eacf7e471d2"}
-                 io.github.ekochetkov/etaoin          {:sha "fc823f6ee4ea8a70d791ca525108bf2ded7354a3"}}
+                 io.github.ekochetkov/etaoin          {:sha "6be79b18bc12be170b88ef00b7f2a204c1768211"}}
    :main-opts   ["-m" "cognitect.test-runner"]
    :exec-fn     cognitect.test-runner.api/test
    :exec-args   {:patterns ["^acceptance\\..*-test$"]}}}}
