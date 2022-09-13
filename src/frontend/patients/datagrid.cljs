@@ -214,7 +214,7 @@
 
 (defn datagrid-toolbar [locale state parent-state]
   (let [{:keys [filter-text-like loading]} state
-        {:keys [show-filter-panel]} parent-state]
+        {:keys [show-search-panel]} parent-state]
   (r/as-element
    [:div
     ;; Add
@@ -232,8 +232,8 @@
     [ui-anchors/make-anchor anchors/toolbar-search-button
      [:> LinkButton {:iconCls "icon-search" :style {:margin "5px" :width "100px"}
                      :toggle true
-                     :selected show-filter-panel
-                     :onClick #(rf/dispatch [:frontend.patients/show-filter-panel])}
+                     :selected show-search-panel
+                     :onClick #(rf/dispatch [:frontend.patients/show-search-panel])}
       (:action.filter locale)]]
     ;; Filter
     [ui-anchors/make-anchor anchors/toolbar-filter-box
