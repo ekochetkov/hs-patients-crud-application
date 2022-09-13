@@ -13,7 +13,7 @@
     {:db milli
      :input milli
      :expected {:ru (format "%s.%s.%s" (add-zero d) (add-zero m) y)
-                :en (format "%s/%s/%s" (add-zero d) (add-zero m) y)}}))
+                :en (format "%s/%s/%s" (add-zero m) (add-zero d) y)}}))
 
 (defn gender []
   (rand-nth [{:db "male"
