@@ -25,9 +25,10 @@
   ([dg-anchor]
      (wait-datagrid-data-changed dg-anchor nil))
   ([dg-anchor current-data]
-   (e/wait-invisible *driver* ".//div[@class='datagrid-mask']")
    (let [check-interval-sec 0.25
          total-attempts 40]
+     (e/wait-invisible *driver* ".//div[@class='datagrid-mask']")
+     (e/wait check-interval-sec)
      (loop [last-attempts total-attempts]
        (when (zero? last-attempts)
          (throw (Exception. (format "Datagrid data not changed after %.2f seconds"
@@ -37,7 +38,9 @@
          (if (= new-data current-data)
            (do (e/wait check-interval-sec)
                (recur (dec last-attempts)))
-           new-data))))))
+           (if (= new-data '({}))
+                  nil
+                  new-data)))))))
 
 (defn context-menu [anchor index item-selector]
   (let [datagrid-el (e/query *driver* {:id anchor})

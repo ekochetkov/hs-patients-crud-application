@@ -43,14 +43,14 @@
              keyboard (->> (str value)
                            (reduce (fn [el v]
                                      (-> el
-                                         (e/add-pause 70)
+                                         (e/add-pause 10)
                                          (e/add-key-press v)
-                                         (e/add-pause 70)))     
-                           (-> (e/make-key-input)
-                               (e/add-pause 70)
-                               (e/with-key-down k/control-left
-                                 (e/add-key-press "a")))))]
-  (e/perform-actions *driver* mouse keyboard))
+                                         (e/add-pause 10)))
+                               (-> (e/make-key-input)
+                                   (e/add-pause 10)
+                                   (e/with-key-down k/control-left
+                                     (e/add-key-press "a")))))]
+  (e/perform-actions *driver* mouse (e/add-pause keyboard 250)))
   (e/release-actions *driver*))
 
 (defn refill-text-input [anchor value]

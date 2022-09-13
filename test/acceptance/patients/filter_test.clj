@@ -24,7 +24,6 @@
    :fn-apply-filters     patients-core/fn-apply-filter})
 
 (deftest patient-name-filter-test
-  (e/wait 8)
   (-> default-ilike-test-opts
       (assoc :model-field-name "patient_name")
       core/ilike-test))

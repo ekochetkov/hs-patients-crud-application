@@ -22,7 +22,7 @@
 
 (deftest patients-delete-positive-test
   (let [data-insert (patients-gen/gen-unique-fake-patients 3)]
-;;(e/wait 8)
+
     ;; Pre
     (patients-core/precondition-datagrid data-insert)
 
@@ -43,9 +43,7 @@
     ;; Post
       (patients-core/data-grid-check-equal
               (doall (filter #(not= (-> % :ru :expected) row-for-delete) data-insert))
-                                         data-insert)))
-;;  (e/wait 5)
-  )
+                                         data-insert))))
 
 (deftest patients-delete-cancel-test
   (let [data-exists (patients-gen/gen-unique-fake-patients 10)]
