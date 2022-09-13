@@ -49,15 +49,6 @@
                                                                           :page-number page-number
                                                                           :page-size   page-size}]]]])))))
 
-(rf/reg-event-fx ::on-page-change
-  (fn [cofx [_ page-number page-size]]
-    (when (or (not= page-number (get-in cofx [:db :page-number]))
-              (not= page-size   (get-in cofx [:db :page-size])))
-      (-> {:db (:db cofx)}
-        (assoc-in [:db :page-number] page-number)
-        (assoc-in [:db :page-size] page-size)
-        (assoc :fx [[:dispatch [::datagrid-reload]]])))))
-
 ;; Receive data from back
 (rf/reg-event-db ::read
   (fn [state [_ [_ {:keys [total page-number page-size rows]}]]]
@@ -127,6 +118,13 @@
         (map #(case (:type %)
                 :MenuItem [:> MenuItem ((:rc-attrs %) locale)]
                 :MenuSep [:> MenuSep])) context-menu-items)])       
+
+(rf/reg-event-fx ::on-page-change
+  (fn [cofx [_ page-number page-size]]
+      (-> {:db (:db cofx)}
+        (assoc-in [:db :page-number] page-number)
+        (assoc-in [:db :page-size] page-size)
+        (assoc :fx [[:dispatch [::datagrid-reload]]]))))
 
 (defn on-page-change [event]
   (let [page-number (.-pageNumber event)
