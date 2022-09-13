@@ -35,7 +35,6 @@
   (fn [cofx [_ where]]
     (-> {:db (:db cofx)}
          (assoc-in [:db :where] where)
-         (assoc-in [:db :data] [])
          (assoc-in [:db :page-number] 1)
          (assoc-in [:db :total] 0)
          (assoc :fx [[:dispatch [::datagrid-reload]]]))))
@@ -234,7 +233,7 @@
                      :toggle true
                      :selected show-search-panel
                      :onClick #(rf/dispatch [:frontend.patients/show-search-panel])}
-      (:action.filter locale)]]
+      (:action.search locale)]]
     ;; Filter
     [ui-anchors/make-anchor anchors/toolbar-filter-box
      [form-field "filter_box" :SearchBox
