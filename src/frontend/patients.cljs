@@ -26,7 +26,9 @@
 
 (def locales {:en {:datagrid {:displayMsg "Displaying {from} to {to} of {total} items"
                               :loadMsg "Processing... Please wait"
-                              :use-context-menu-message "Use context menu for update or delete row"}
+                              :use-context-menu-message "Use context menu for update or delete row"
+                              :no-rows-message "Please, change search or filtering criteria and try again"
+                              :no-rows-title "No data for display"}
                    :human-date-format "MM/dd/yyyy"
                    :gender.male "Male"
                    :gender.female "Female"                   
@@ -67,7 +69,9 @@
                                    :no "No"}}
               :ru {:datagrid {:displayMsg "Показаны записи с {from} по {to}. Всего {total}."
                               :loadMsg "Обработка... Пожалуйста, подождите"
-                              :use-context-menu-message "Используйте контекстное меню для обновления или удаления строки"}
+                              :use-context-menu-message "Используйте контекстное меню для обновления или удаления строки"
+                              :no-rows-message "Пожалуйста, измените критерии поиска или фильтрации и повторите попытку"
+                              :no-rows-title "Нет данных для отображения"}                              
                    :human-date-format "dd.MM.yyyy"
                    :gender.male "Мужской"
                    :gender.female "Женский"

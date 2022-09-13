@@ -258,7 +258,7 @@
                 data]}    state
         rows-after-filter (data-view data (:filter-text-like state) locale)
         rows-in-datagrid  (if (empty? rows-after-filter)
-                            [{"no_rows_message" "Please, change search or filtering criteria and try again"}]
+                            [{"no_rows_message" (-> locale :datagrid :no-rows-message)}]
                             rows-after-filter)]
     [:div {:id     anchors/datagrid-table
            :fields "#,patient_name,birth_date,gender,policy_number,address"}
@@ -291,7 +291,7 @@
            (if (-> rows-in-datagrid
                    first
                    (get "no_rows_message"))
-             [[:> GridColumn {:width "40px" :title "No data for display" :align "center" :field "no_rows_message"}]]
+             [[:> GridColumn {:width "40px" :title (-> locale :datagrid :no-rows-title) :align "center" :field "no_rows_message"}]]
              [[:> GridColumn {:width "40px" :title "#" :align "center" :render #(inc (.-rowIndex %))}]
               [:> GridColumn {:width "400px" :field "patient_name"
                               :title (:patient-name locale)}]
