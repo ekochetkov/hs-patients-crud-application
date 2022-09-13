@@ -218,6 +218,10 @@
      
      [ui-anchors/make-anchor anchors/apply-button
       [:> LinkButton {:style {:float "right"}
-                     :onClick #(rf/dispatch [::apply-filters])} (:filter.apply locale)]]]))
+                      :disabled (or (and (some #(= birth-date-mode %) '(:equal :after :before :between))
+                                         (nil? birth-date-start))
+                                    (and (= birth-date-mode :between)
+                                         (nil? birth-date-end)))
+                      :onClick #(rf/dispatch [::apply-filters])} (:filter.apply locale)]]]))
 
 
