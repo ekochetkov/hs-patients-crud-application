@@ -199,7 +199,8 @@
         [form-field "birth_date_start" :DateBox
          {:style input-style
           :value birth-date-start
-          :format (:human-date-format locale)                     
+          :format (:human-date-format locale)
+          :calendarOptions (clj->js (:calendarOptions locale))
           :onChange #(rf/dispatch [::update-filters [:birth-date :start] %])}]])
 
      (when (= birth-date-mode :between)
@@ -208,6 +209,7 @@
          {:style input-style
                      :value birth-date-end
                      :format (:human-date-format locale)
+                     :calendarOptions (clj->js (:calendarOptions locale))
                      :onChange #(rf/dispatch [::update-filters [:birth-date :end] %])}]])
      [:hr]
 

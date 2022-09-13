@@ -30,6 +30,13 @@
                               :no-rows-message "Please, change search or filtering criteria and try again"
                               :no-rows-title "No data for display"}
                    :human-date-format "MM/dd/yyyy"
+                   :calendarOptions {:defaultWeeks ["S" "M" "T" "W" "T" "F" "S"]
+                                     :firstDay 0
+                                     :defaultCurrentText "Today"
+                                     :defaultCloseText "Close"
+                                     :defaultMonths ["Jan" "Feb" "Mar" "Apr"
+                                                     "May" "Jun" "Jul" "Aug"
+                                                     "Sep" "Oct" "Nov" "Dec"]}
                    :gender.male "Male"
                    :gender.female "Female"                   
                    :patient-name "Patient name"
@@ -73,6 +80,16 @@
                               :no-rows-message "Пожалуйста, измените критерии поиска или фильтрации и повторите попытку"
                               :no-rows-title "Нет данных для отображения"}                              
                    :human-date-format "dd.MM.yyyy"
+                   :calendarOptions {:defaultWeeks ["ВС" "ПН" "ВТ" "СР" "ЧТ" "ПТ" "СБ"]
+                                     :firstDay 1
+                                     ;; Bug in easy-ui component
+                                     ;; can't replace current and close text
+                                     :defaultCurrentText "Сегодня"
+                                     :defaultCloseText "Закрыть"
+                                     :defaultMonths ["Январь"  "Февраль" "Март"
+                                                     "Апрель"  "Май"     "Июнь"
+                                                     "Июль"    "Август"  "Сентябрь"
+                                                     "Октябрь" "Ноябрь"  "Декабрь"]}
                    :gender.male "Мужской"
                    :gender.female "Женский"
                    :patient-name "ФИО пациента"

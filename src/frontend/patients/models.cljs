@@ -25,7 +25,9 @@
 
    :birth-date {:name "birth_date"
                 :rc-input-class :DateBox    
-                :rc-input-attrs (fn [locale] {:format (:human-date-format locale)})}
+                :rc-input-attrs (fn [locale]
+                                  {:calendarOptions (clj->js (:calendarOptions locale))
+                                   :format (:human-date-format locale)})}
    
    :gender {:name "gender"
             :rc-input-class :ComboBox    
