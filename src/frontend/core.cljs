@@ -17,11 +17,9 @@
     (rdom/render [p/ui] root-el)))
 
 (defn main []
-  (js/console.log "main") 
   (rf/dispatch-sync [:initialize-db])
   (comm/start js/WS_URL)
   (rf/dispatch [::dg/datagrid-reload])
   (mount-root))
 
-(js/console.log "App entry point here" js/WS_URL)
 (main)

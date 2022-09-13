@@ -26,6 +26,6 @@
   (fn [_] {:frontend db}))
 
 (defn state []
-  (js/console.log "state" (str @re-frame.db/app-db)))
+  (str @re-frame.db/app-db))
 
 
