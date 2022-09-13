@@ -25,7 +25,8 @@
                      :dialog-delete dialog-delete/init-state}})
 
 (def locales {:en {:datagrid {:displayMsg "Displaying {from} to {to} of {total} items"
-                              :loadMsg "Processing... Please wait"}
+                              :loadMsg "Processing... Please wait"
+                              :use-context-menu-message "Use context menu for update or delete row"}
                    :human-date-format "MM/dd/yyyy"
                    :gender.male "Male"
                    :gender.female "Female"                   
@@ -65,7 +66,8 @@
                                    :yes "Yes"
                                    :no "No"}}
               :ru {:datagrid {:displayMsg "Показаны записи с {from} по {to}. Всего {total}."
-                              :loadMsg "Обработка... Пожалуйста, подождите"}
+                              :loadMsg "Обработка... Пожалуйста, подождите"
+                              :use-context-menu-message "Используйте контекстное меню для обновления или удаления строки"}
                    :human-date-format "dd.MM.yyyy"
                    :gender.male "Мужской"
                    :gender.female "Женский"

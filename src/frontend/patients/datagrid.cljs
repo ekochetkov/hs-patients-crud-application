@@ -243,7 +243,12 @@
       {:style {:float "right" :margin "5px" :width "350px"}
        :value filter-text-like
        :buttonIconCls "icon-filter" 
-       :onChange #(rf/dispatch [::update-filter-text-like %])}]]])))
+       :onChange #(rf/dispatch [::update-filter-text-like %])}]]
+
+    [:br]
+    [:p {:style {:margin "2 2 2 5"
+                 :font-size "small"}}
+     (-> locale :datagrid :use-context-menu-message)]])))
 
 (defn entry [locale parent-state]
   (let [state             @(rf/subscribe [::state])
