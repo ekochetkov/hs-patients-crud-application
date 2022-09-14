@@ -102,13 +102,7 @@
          [:> (kw->rc-easy-ui-class sub-rc-input-class)
              sub-rc-input-attrs
              content]]
-        )
-      ]]
-  )
-
-;;(defn build-form-field-node [anchor rc-input-class rc-input-attrs & childs]
-;;
-;;  )
+        )]])
 
 (defn entry [locale]
   (let [state @(rf/subscribe [::state])
@@ -125,7 +119,7 @@
            :style {:padding "10px"}}
 
      [:p {:style {:font-weight (when (not (blank? patient-name)) "bold")}}
-      (:search.atient-name locale)]
+      (:search.patient-name locale)]
 
      [form-field "patient_name" :TextBox
       {:style input-style
@@ -148,8 +142,7 @@
        :mask "9999 9999 9999 9999"                    
        :value ((get-in Patient [:converts "policy_number" :get]) policy-number)
        :onChange #(rf/dispatch[::update-searches [:policy-number]
-                            ((get-in Patient [:converts "policy_number" :set]) %)
-                               ])}]
+                            ((get-in Patient [:converts "policy_number" :set]) %)])}]
 
      [:p {:style {:font-weight (when (not (blank? gender)) "bold")}}
       (:search.gender locale)]
@@ -217,7 +210,8 @@
      
      [ui-anchors/make-anchor anchors/apply-button
       [:> LinkButton {:style {:float "right"}
-                      :disabled (or (and (some #(= birth-date-mode %) '(:equal :after :before :between))
+                      :disabled (or (empty? (:searches state))
+                                    (and (some #(= birth-date-mode %) '(:equal :after :before :between))
                                          (nil? birth-date-start))
                                     (and (= birth-date-mode :between)
                                          (nil? birth-date-end)))
