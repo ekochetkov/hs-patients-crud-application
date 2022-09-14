@@ -2,7 +2,6 @@
   (:require [clojure.test :refer [deftest use-fixtures join-fixtures]]
             [acceptance.patients.core :as patients-core]
             [acceptance.core :as core]
-            [etaoin.api :as e]            
             [acceptance.context :refer [fx-default]]
             [generators.patient :as patients-gen]))
 
