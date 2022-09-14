@@ -2,6 +2,7 @@
   (:require [backend.context :refer [ctx]]
             [backend.ws]
             [clojure.test :refer [is]]
+            [etaoin.keys :as k]
             [common.ui-anchors.patients.datagrid     :as dg-anchors]
             [common.ui-anchors.patients.search-panel :as sp-anchors]
             [acceptance.easy-ui.link-button          :as link-button]
@@ -24,7 +25,10 @@
 (def fn-apply-search
   (fn [form-data]
     (form/set-values sp-anchors/form form-data)
-    (link-button/click sp-anchors/apply-button)))
+    (if (= (-> form-data vals first)
+           k/backspace)
+      (link-button/click sp-anchors/reset-button)
+      (link-button/click sp-anchors/apply-button))))
 
 (def fn-precoditions
   (fn [pre-rows]
