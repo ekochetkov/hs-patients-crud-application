@@ -108,7 +108,7 @@
                    "//td[not(contains(@class,'other-month')) and text()=" day "]")]
 
     (e/wait-predicate #(e/displayed-el? *driver* el))
-    (e/click-el *driver* x-date)    
+    (e/click-el *driver* x-date)
     
     (e/wait-visible *driver* ".//div[contains(@class,'calendar')]/span[@class='calendar-text']")
     (e/click *driver* ".//div[contains(@class,'calendar')]/span[@class='calendar-text']")
@@ -117,6 +117,7 @@
     (u/refill-text-input ".//input[@class='calendar-menu-year']" year)
   
     (e/wait-visible *driver* x-month)
+
     (e/click *driver* x-month)
   
     (e/wait-visible *driver* x-day)
