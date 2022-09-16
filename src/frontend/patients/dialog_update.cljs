@@ -35,11 +35,11 @@
   (fn [cofx _]
     (let [data (get-in cofx [:db :form-data])
           uuid (get-in cofx [:db :uuid])]
-      (assoc cofx :fx [[:dispatch [::comm/send-event ::update [:patients/update uuid data]]]]))))
+      (assoc {:db (:db cofx)} :fx [[:dispatch [::comm/send-event ::update [:patients/update uuid data]]]]))))
 
 (rf/reg-event-fx ::update
   (fn [cofx]
-    (-> cofx
+    (-> {:db (:db cofx)}
       (assoc-in [:db :dialog-closed] true)
       (assoc-in [:db :form-data] {})
       (assoc :fx [[:dispatch [:frontend.patients.datagrid/datagrid-reload]]]))))
@@ -88,7 +88,6 @@
 
 (defn- form [locale state patient-model]
   (let [form-data (:form-data state)]
-    (js/console.log "fd" (str patient-model)) 
     (into [:> Form
             {:errorType "tooltip"
              :className "f-full"

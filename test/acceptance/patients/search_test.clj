@@ -27,13 +27,14 @@
 
 (use-fixtures :each (join-fixtures [fx-default prepare-steps]))
 
+(def empty-search-form {"patient_name"    ""
+                        "address"         ""
+                        "policy_number"   "____ ____ ____ ____"
+                        "gender"          "any"
+                        "birth_date_mode" "any"})
+
 (defn form-reseted? [data]
-  (= data
-     {"patient_name" ""
-      "address" ""
-      "policy_number" "____ ____ ____ ____"
-      "gender" "any"
-      "birth_date_mode" "any"}))
+  (= data empty-search-form))
 
 (deftest form-reseted-after-fixtures
   (let [search-form-data (form/get-values sp/form)]
@@ -50,6 +51,52 @@
    :fn-get-datagrid-data patients-core/fn-wait-datagrid-data-changed
    :fn-apply-filters     patients-core/fn-apply-search})
 
+(deftest patient-apply-button-disabled-on-empty-start-date
+  (form/set-values sp/form {"birth_date_mode" "equal"})
+  (let [current-values (form/get-values sp/form)
+        birth-date-start (get current-values "birth_date_start")]
+    (is (= birth-date-start ""))
+    (is (link-button/disabled? sp/apply-button))))
+
+(deftest patient-apply-button-disabled-on-empty-end-date
+  (form/set-values sp/form {"birth_date_mode" "between"
+                            "birth_date_start" (:db (patients-gen/birth_date))})
+  (let [current-values (form/get-values sp/form)
+        birth-date-start (get current-values "birth_date_start")
+        birth-date-end   (get current-values "birth_date_end")]
+    (is (not= birth-date-start ""))
+    (is (=    birth-date-end   ""))
+    (is (link-button/disabled? sp/apply-button))))
+
+(deftest patient-apply-button-disabled-on-empty-search-form
+
+  (is (link-button/disabled? sp/apply-button))
+  (let [fake-data (patients-gen/gen-fake-patient)
+        input-empty-search-form (assoc empty-search-form "policy_number" "")]
+    (doall
+     (for [field '("patient_name"
+                   "address"
+                   "policy_number"
+                   "gender"
+                   "birth_date_equal"
+                   "birth_date_between")]
+      (do
+        (form/set-values
+         sp/form
+         (case field
+           "birth_date_equal"
+               (assoc input-empty-search-form "birth_date_mode" "equal"
+                                              "birth_date_start" (get-in fake-data [:db "birth_date"]))
+           "birth_date_between"
+               (assoc input-empty-search-form "birth_date_mode" "between"
+                                              "birth_date_start" (get-in fake-data [:db "birth_date"])
+                                              "birth_date_end"   (get-in fake-data [:db "birth_date"]))
+           (assoc input-empty-search-form field (get-in fake-data [:db field])))) 
+         (is (link-button/enabled? sp/apply-button))
+
+         (form/set-values sp/form input-empty-search-form)
+         (is (link-button/disabled? sp/apply-button)))))))
+                   
 (deftest patient-name-search-test
   (-> default-test-opts
       (assoc :model-field-name "patient_name"

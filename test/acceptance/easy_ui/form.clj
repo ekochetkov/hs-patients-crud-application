@@ -51,17 +51,14 @@
 
 (defmethod set-field-value "TextBox" [_ el value]
   (let [input-el (e/child *driver* el {:tag :input})]
-    (e/wait-predicate #(e/displayed-el? *driver* el))
     (u/refill-text-input-el input-el value)))
 
 (defmethod set-field-value "SearchBox" [_ el value]
   (let [input-el (e/child *driver* el {:tag :input})]
-    (e/wait-predicate #(e/displayed-el? *driver* el))
     (u/refill-text-input-el input-el value)))
     
 (defmethod set-field-value "TextArea" [_ el value]
   (let [input-el (e/child *driver* el {:tag :textarea})]
-    (e/wait-predicate #(e/displayed-el? *driver* el))    
     (u/refill-text-input-el input-el value)))
     
 (defmethod set-field-value "ComboBox" [_ el value]
@@ -78,25 +75,6 @@
   (let [input-el (e/child *driver* el {:tag :input})]  
     (e/wait-predicate #(e/displayed-el? *driver* el))
     (u/refill-text-input-el input-el value)))
-    ;;(e/release-actions *driver*)
-  #_(let [input    (e/child *driver* el {:tag :input})
-        mouse    (-> (e/make-mouse-input)
-                     (e/add-pointer-click-el input k/mouse-left))
-        keyboard (->> value
-                      (reduce (fn [input v]
-                                (-> input
-                                    (e/add-pause 50)              
-                                    (e/add-key-press v)
-                                    (e/add-pause 50)))     
-                              (-> (e/make-key-input)
-                                  (e/add-pause 50)
-                                  (e/with-key-down k/control-left
-                                    (e/add-key-press "a"))
-                                  (e/add-pause 50))))]
-  (e/wait-predicate #(e/displayed-el? *driver* el))
-  (e/perform-actions *driver* keyboard mouse))
-;;  (e/release-actions *driver*)
-;;  )
 
 (defn ts->year-month-day [ts]
   (->> (doto
@@ -130,7 +108,7 @@
                    "//td[not(contains(@class,'other-month')) and text()=" day "]")]
 
     (e/wait-predicate #(e/displayed-el? *driver* el))
-    (e/click-el *driver* x-date)    
+    (e/click-el *driver* x-date)
     
     (e/wait-visible *driver* ".//div[contains(@class,'calendar')]/span[@class='calendar-text']")
     (e/click *driver* ".//div[contains(@class,'calendar')]/span[@class='calendar-text']")
@@ -139,6 +117,7 @@
     (u/refill-text-input ".//input[@class='calendar-menu-year']" year)
   
     (e/wait-visible *driver* x-month)
+
     (e/click *driver* x-month)
   
     (e/wait-visible *driver* x-day)
@@ -159,5 +138,6 @@
   (doall (map (fn [[name value]]
                 (let [el         (find-target-field id name)
                       field-type (e/get-element-attr-el *driver* el "fieldtype")]
-        (set-field-value field-type el value))) data)))
+                  (e/wait-predicate #(e/displayed-el? *driver* el))
+                  (set-field-value field-type el value))) data)))
 

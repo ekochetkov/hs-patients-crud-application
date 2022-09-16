@@ -32,11 +32,11 @@
 (rf/reg-event-fx ::send-event-create   
   (fn [cofx _]
     (let [data (get-in cofx [:db :form-data])]
-      (assoc cofx :fx [[:dispatch [::comm/send-event ::create [:patients/create data]]]]))))
+      (assoc {:db (:db cofx)} :fx [[:dispatch [::comm/send-event ::create [:patients/create data]]]]))))
 
 (rf/reg-event-fx ::create 
   (fn [cofx]
-    (-> cofx
+    (-> {:db (:db cofx)}
       (assoc-in [:db :dialog-closed] true)
       (assoc-in [:db :form-data] {})
       (assoc :fx [[:dispatch [:frontend.patients.datagrid/datagrid-reload]]]))))
@@ -46,8 +46,7 @@
     (assoc-in state [:form-data field-name] value)))
 
 (rf/reg-event-db ::on-validate-form-data
-                 (fn [module-state [_ errors]]
-                   (js/console.log "valie" (str module-state))
+  (fn [module-state [_ errors]]
     (assoc module-state :is-valid-form-data (nil? errors))))
 
 (defn- on-change-form-data [model field-name value]

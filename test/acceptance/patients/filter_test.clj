@@ -2,7 +2,6 @@
   (:require [clojure.test :refer [deftest use-fixtures join-fixtures]]
             [acceptance.patients.core :as patients-core]
             [acceptance.core :as core]
-            [etaoin.api :as e]            
             [acceptance.context :refer [fx-default]]
             [generators.patient :as patients-gen]))
 
@@ -24,7 +23,6 @@
    :fn-apply-filters     patients-core/fn-apply-filter})
 
 (deftest patient-name-filter-test
-  (e/wait 8)
   (-> default-ilike-test-opts
       (assoc :model-field-name "patient_name")
       core/ilike-test))

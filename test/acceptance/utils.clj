@@ -36,21 +36,26 @@
        (take (inc n))
        last))
 
-(defn refill-text-input-el [el value]
-    (e/release-actions *driver*)
-    (let [mouse (-> (e/make-mouse-input)
-                    (e/add-pointer-click-el el k/mouse-left))
-             keyboard (->> (str value)
-                           (reduce (fn [el v]
-                                     (-> el
-                                         (e/add-pause 70)
-                                         (e/add-key-press v)
-                                         (e/add-pause 70)))     
-                           (-> (e/make-key-input)
-                               (e/add-pause 70)
-                               (e/with-key-down k/control-left
-                                 (e/add-key-press "a")))))]
-  (e/perform-actions *driver* mouse keyboard))
+(defn refill-text-input-el [el raw-value]
+  (e/release-actions *driver*)
+  (let [value-s  (str raw-value)
+        value    (if (= "" value-s)
+                k/backspace
+                value-s)
+        mouse    (-> (e/make-mouse-input)
+                  (e/add-pointer-click-el el k/mouse-left))
+        keyboard (->> (str value)
+                      (reduce (fn [el v]
+                                (-> el
+                                    (e/add-pause 40)
+                                    (e/add-key-press v)
+                                    (e/add-pause 40)))
+                              (-> (e/make-key-input)
+                                  (e/add-pause 40)
+                                  (e/with-key-down k/control-left
+                                    (e/add-key-press "a")))))]
+      (e/perform-actions *driver* mouse)
+      (e/perform-actions *driver* (e/add-pause keyboard 200)))
   (e/release-actions *driver*))
 
 (defn refill-text-input [anchor value]

@@ -11,15 +11,6 @@
 (defn query [anchor]
   (query-el (e/query *driver* {:id anchor})))
 
-;; click
-
-(defn click-el [el]
-  (e/click-el *driver* el))
-  
-(defn click [anchor]
-  (e/wait-exists *driver* {:id anchor})
-  (click-el (query anchor)))
-
 ;; disabled?/enabled?
 
 (defn disabled-el? [el]
@@ -33,6 +24,16 @@
 
 (def enabled?
   (complement disabled?))
+
+;; click
+
+(defn click-el [el]
+  (e/wait-predicate #(enabled-el? el))
+  (e/click-el *driver* el))
+
+(defn click [anchor]
+  (e/wait-exists *driver* {:id anchor})
+  (click-el (query anchor)))
 
 ;; selected?/unselected?
 
