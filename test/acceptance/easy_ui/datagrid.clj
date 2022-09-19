@@ -5,19 +5,25 @@
             [acceptance.utils :as u]
             [acceptance.context :refer [*driver*]]))
 
+(defn get-header [anchor]
+  (-> (e/get-element-attr *driver* {:id anchor} :fields)
+      (s/split #",")))
+
+(defn header-column-name-click [anchor column-name]
+  (let [header-rows     (e/children *driver* (e/query *driver* {:id anchor})
+                                    {:tag "tbody/tr[@class='datagrid-header-row']"})
+        header-tds      (e/children *driver* (first header-rows) {:tag "td"})
+        header-names    (get-header anchor)
+        header-elements (zipmap header-names header-tds)]
+    (e/click-el *driver* (get header-elements column-name))))
+
 (defn datagrid-data [anchor]
-  (let [header  (-> (e/get-element-attr *driver* {:id anchor} :fields)
-                    (s/split #","))
+  (let [header  (get-header anchor)
         rows-el (e/children *driver* (e/query *driver* {:id anchor})
                             {:tag "tbody/tr[contains(@class,'datagrid-row')]"})
         rows    (->> rows-el
                      (map (fn [row] (->> (e/children *driver* row ".//td/div")
-                                         (map
-
-                                        ;#(e/get-element-text-el *driver* %)
-                                          #(e/get-element-property-el *driver* % :textContent )                                     
-
-                                          )))))]
+                                         (map #(e/get-element-property-el *driver* % :textContent ))))))]
     (mapv #(zipmap header %) rows)))
 
 (defn wait-datagrid-data-changed

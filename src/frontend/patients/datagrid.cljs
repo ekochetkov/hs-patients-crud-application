@@ -21,6 +21,7 @@
                  :show-context-menu {:show false
                                      :position {:x nil :y nil}}
                  :where []
+                 :order-by nil
                  :data []
                  :total -1
                  :page-size 35
@@ -41,10 +42,11 @@
 
 (rf/reg-event-fx ::datagrid-reload
   (fn [cofx]
-    (let [{:keys [where page-number page-size]} (:db cofx)]
+    (let [{:keys [where page-number page-size order-by]} (:db cofx)]
       (-> {:db (:db cofx)}
         (assoc-in [:db :loading] true)
         (assoc :fx [[:dispatch [::comm/send-event ::read [:patients/read {:where       where
+                                                                          :order-by    order-by
                                                                           :page-number page-number
                                                                           :page-size   page-size}]]]])))))
 
@@ -129,6 +131,17 @@
   (let [page-number (.-pageNumber event)
         page-size (.-pageSize event)]
   (rf/dispatch [::on-page-change page-number page-size])))
+
+(rf/reg-event-fx ::on-sort-change
+  (fn [cofx [_ sorts]]
+    (-> {:db (:db cofx)}
+        (assoc-in [:db :order-by] sorts)
+        (assoc :fx [[:dispatch [::datagrid-reload]]]))))
+
+(defn on-sort-change [sorts]
+  (let [honey-sorts (vec (for [s sorts]
+                       [(.-field s) (keyword (.-order s))]))]
+    (rf/dispatch [::on-sort-change honey-sorts])))
 
 (defn- mapping-data-from-back [locale data]
   (->> data
@@ -285,7 +298,8 @@
                                              (-> rowEvent .-originalEvent .preventDefault)
                                              (rf/dispatch [::on-row-context-menu rowEvent]))
                          :onRowClick       (fn [datagrid-row] (rf/dispatch [::on-row-click datagrid-row]))
-                         :onPageChange     on-page-change}]
+                         :onPageChange     on-page-change
+                         :onSortChange     on-sort-change}]
 
            (if (-> rows-in-datagrid
                    first
@@ -293,14 +307,19 @@
              [[:> GridColumn {:width "40px" :title (-> locale :datagrid :no-rows-title) :align "center" :field "no_rows_message"}]]
              [[:> GridColumn {:width "40px" :title "#" :align "center" :render #(inc (.-rowIndex %))}]
               [:> GridColumn {:width "400px" :field "patient_name"
-                              :title (:patient-name locale)}]
+                              :title (:patient-name locale)
+                              :sortable true}]
               [:> GridColumn {:width "140px" :align "center" :field "birth_date"
-                              :title (:birth-date locale)}]
+                              :title (:birth-date locale)
+                              :sortable true}]
               [:> GridColumn {:width "100px" :field "gender" :align "center"
-                              :title (:gender locale)}]
+                              :title (:gender locale)
+                              :sortable true}]
               [:> GridColumn {:width "220px" :align "center" :field "policy_number"
-                              :title (:policy-number locale)}]
+                              :title (:policy-number locale)
+                              :sortable true}]
               [:> GridColumn {:width "100%" :field "address"
-                              :title (:address locale) }]]))
+                              :title (:address locale)
+                              :sortable true}]]))
      (when (-> state :show-context-menu :show)
        [context-menu (-> state :show-context-menu) locale])]))

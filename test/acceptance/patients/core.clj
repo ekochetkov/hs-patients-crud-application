@@ -22,6 +22,10 @@
   (fn [form-data]
     (form/set-values dg-anchors/toolbar-filter-box form-data)))
 
+(def fn-apply-sorting
+  (fn [field]
+    (datagrid/header-column-name-click dg-anchors/datagrid-table field)))
+
 (def fn-apply-search
   (fn [form-data]
     (form/set-values sp-anchors/form form-data)

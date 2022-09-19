@@ -58,14 +58,15 @@
                    {:deleted (Timestamp/from (Instant/now))} ["uuid = ?::uuid" uuid]))
   :success-deleted)
 
+(def fields-type-cast {"birth_date" "bigint"})
+
 (defn build-where [front-where]
-  (let [fields-type-cast {"birth_date" "bigint"}]
     (->> front-where
          (map (fn [[op field & args]]
                 (let [field-pg-type (get fields-type-cast field "text")]
                   (into [op (db/pg->> "resource" field field-pg-type)] args))))
          (concat [:and [:= :deleted nil]])
-         vec)))
+         vec))
 
 (def read-global-limit 100)
 
@@ -73,11 +74,16 @@
   (let [page-number    (or (:page-number opts) 1)
         page-size-need (or (:page-size opts) 30)
         page-size      (if (< page-size-need read-global-limit)
-                    page-size-need
-                    read-global-limit)]
+                         page-size-need
+                         read-global-limit)
+        order-by       (or (:order-by opts) [["patient_name" :asc]])]
     {:select [:uuid :resource]
      :from   [:patients]
      :where  where
+     :order-by (->> order-by
+                    (mapv (fn [[field direction]]
+                            (let [field-pg-type (get fields-type-cast field "text")]
+                               [(db/pg->> "resource" field field-pg-type) direction]))))
      :limit  page-size
      :offset (* page-size (dec page-number))}))
 
@@ -106,8 +112,7 @@
                       (if (<= req-page-number
                               max-page-number)
                         req-page-number
-                        max-page-number))
-        ]
+                        max-page-number))]
     {:total       total
      :page-number page-number     
      :page-size   page-size
