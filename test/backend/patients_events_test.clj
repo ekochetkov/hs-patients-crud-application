@@ -29,7 +29,7 @@
    (schema/required-key :page-size)   schema/Int
    (schema/required-key :rows)        (schema/maybe [{schema/Keyword schema/Any}])})
 
-(deftest create-event-result-schema-testo
+(deftest create-event-result-schema-test
   (let [patient      (:db (gen-fake-patient))
         event        [:patients/create patient]
         event-result (ws/ws-process-event ctx event)]    
@@ -264,7 +264,6 @@
           r-2    (ws-process-event ctx [:patients/read {:page-number  2 :page-size 10}])
           r-over (ws-process-event ctx [:patients/read {:page-number 10 :page-size 40}])]
 
-
       (is (= {:total total :page-number 1 :page-size 5}
              (dissoc r-1 :rows)))
 
@@ -273,3 +272,4 @@
 
       (is (= {:total total :page-number 1 :page-size 40}
              (dissoc r-over :rows))))))
+
