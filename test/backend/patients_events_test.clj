@@ -309,8 +309,8 @@
   (test-single-field-ordering "gender"))
 
 (deftest positive-read-order-by-policy_number
-  (test-single-field-ordering "gender"))
+  (test-single-field-ordering "policy_number"))
 
 (deftest positive-read-order-by-birth_date
-  (test-single-field-ordering "gender"))
+  (test-single-field-ordering "birth_date"))
 
