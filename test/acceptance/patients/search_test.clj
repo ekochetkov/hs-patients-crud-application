@@ -145,7 +145,7 @@
 (deftest patient-birth-date-after-search-test
   (let [some-date (:db (patients-gen/birth_date))]
     (-> default-test-opts
-        (assoc :fn-target-confine #(> (get-in % [:db "birth_date"]) some-date)
+        (assoc :fn-target-confine #(>= (get-in % [:db "birth_date"]) some-date)
                :search-form {"birth_date_mode" "after"
                              "birth_date_start" some-date})      
       core/common-search-test)))
@@ -153,7 +153,7 @@
 (deftest patient-birth-date-before-search-test
   (let [some-date (:db (patients-gen/birth_date))]
     (-> default-test-opts
-        (assoc :fn-target-confine #(< (get-in % [:db "birth_date"]) some-date)
+        (assoc :fn-target-confine #(<= (get-in % [:db "birth_date"]) some-date)
                :search-form {"birth_date_mode" "before"
                              "birth_date_start" some-date})      
       core/common-search-test)))
@@ -164,8 +164,8 @@
         data_start (min data-a data-b)
         data_end   (max data-a data-b)]
     (-> default-test-opts
-        (assoc :fn-target-confine #(and (> (get-in % [:db "birth_date"]) data_start)
-                                        (< (get-in % [:db "birth_date"]) data_end))
+        (assoc :fn-target-confine #(and (>= (get-in % [:db "birth_date"]) data_start)
+                                        (<= (get-in % [:db "birth_date"]) data_end))
                :search-form {"birth_date_mode"  "between"
                              "birth_date_start" data_start
                              "birth_date_end"   data_end})
