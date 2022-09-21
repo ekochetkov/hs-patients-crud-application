@@ -3,7 +3,6 @@
    [backend.context :refer [ctx]]
    [backend.ws :as ws :refer [ws-process-event]]
    [clojure.set :refer [intersection]]
-;;   [backend.ws-events :refer [process-ws-event]]   
    [backend.patients-events :as pe]
    [generators.patient :refer [gen-fake-patient
                                gen-unique-fake-patients]]      
@@ -29,7 +28,7 @@
    (schema/required-key :page-size)   schema/Int
    (schema/required-key :rows)        (schema/maybe [{schema/Keyword schema/Any}])})
 
-(deftest create-event-result-schema-testo
+(deftest create-event-result-schema-test
   (let [patient      (:db (gen-fake-patient))
         event        [:patients/create patient]
         event-result (ws/ws-process-event ctx event)]    
@@ -171,7 +170,7 @@
     (is (=
          [:and [:= :deleted nil]
                [:= [:raw "(resource->>'patient_name')::text"] "A"]
-               [:<= [:raw "(resource->>'birth_date')::bigint"] 10]          ]
+               [:<= [:raw "(resource->>'birth_date')::bigint"] 10]]
          (pe/build-where conds)))))
 
 (deftest build-data-query-default
@@ -179,6 +178,7 @@
          {:select [:uuid :resource]
           :from [:patients]
           :where "where conds here"
+          :order-by [[[:raw "(resource->>'patient_name')::text"] :asc]]
           :limit 30
           :offset 0})))
 
@@ -187,6 +187,7 @@
          {:select [:uuid :resource]
           :from [:patients]
           :where ["where conds here"]
+          :order-by [[[:raw "(resource->>'patient_name')::text"] :asc]]
           :limit 45
           :offset 180})))
 
@@ -195,6 +196,7 @@
          {:select [:uuid :resource]
           :from [:patients]
           :where ["where conds here"]
+          :order-by [[[:raw "(resource->>'patient_name')::text"] :asc]]
           :limit pe/read-global-limit
           :offset 0})))
 
@@ -264,7 +266,6 @@
           r-2    (ws-process-event ctx [:patients/read {:page-number  2 :page-size 10}])
           r-over (ws-process-event ctx [:patients/read {:page-number 10 :page-size 40}])]
 
-
       (is (= {:total total :page-number 1 :page-size 5}
              (dissoc r-1 :rows)))
 
@@ -273,3 +274,43 @@
 
       (is (= {:total total :page-number 1 :page-size 40}
              (dissoc r-over :rows))))))
+
+;; Test sorting
+
+(defn test-single-field-ordering [field]
+  (let [p-1                  (gen-fake-patient)
+        p-2                  (gen-fake-patient #(not= (get-in   % [:db field])
+                                                      (get-in p-1 [:db field])))
+        patients             (list p-1 p-2)
+        patients-sorted-asc  (sort-by #(get-in % [:db field]) patients)
+        patients-sorted-desc (reverse patients-sorted-asc)]
+
+    (doall (->> patients
+                (map #(ws-process-event ctx [:patients/create (:db %)]))))
+
+   (is (= (count-table-patients ctx) 2))
+
+   (let [result-asc  (ws-process-event ctx [:patients/read {:page-number 1 :page-size 100 :order-by [[field :asc]]}])
+         result-desc (ws-process-event ctx [:patients/read {:page-number 1 :page-size 100 :order-by [[field :desc]]}])]
+
+     (is (= (map :db patients-sorted-asc)
+            (map :resource (:rows result-asc))))
+
+     (is (= (map :db patients-sorted-desc)
+            (map :resource (:rows result-desc)))))))
+
+(deftest positive-read-order-by-patient_name
+  (test-single-field-ordering "patient_name"))
+
+(deftest positive-read-order-by-address
+  (test-single-field-ordering "address"))
+
+(deftest positive-read-order-by-gender
+  (test-single-field-ordering "gender"))
+
+(deftest positive-read-order-by-policy_number
+  (test-single-field-ordering "policy_number"))
+
+(deftest positive-read-order-by-birth_date
+  (test-single-field-ordering "birth_date"))
+

@@ -4,6 +4,56 @@
             [etaoin.keys :as k]
             [acceptance.utils :refer [deep-merge]]))
 
+(defn common-sorting-test
+  "Common sorting test algorithm. Steps:
+   1. Generate two rows with unique field value
+   2. Insert all rows
+   3. Check actual rows equal all rows
+   4. Apply sort fn for field
+   5. Check asc order
+   6. Apply sort fn for field
+   7. Check desc order"
+  [{:keys [field
+           fn-insert-row
+           fn-get-datagrid-data
+           fn-apply-sorting
+           fn-reload-datagrid
+           fn-gen-fake-model-*]}]
+  (let [p-1                  (fn-gen-fake-model-*)
+        p-2                  (fn-gen-fake-model-* #(not= (get-in   % [:db field])
+                                                            (get-in p-1 [:db field])))
+        all-rows             (list p-1 p-2)
+        all-rows-sorted-asc  (sort-by #(get-in % [:db field]) all-rows)
+        all-rows-sorted-desc (reverse all-rows-sorted-asc)]
+
+    (doall (->> all-rows
+                (map :db all-rows)
+                (map fn-insert-row)))
+
+    (fn-reload-datagrid)
+
+    (let [all-actual-rows          (fn-get-datagrid-data)
+          all-actual-rows-expected (map #(-> % :ru :expected) all-rows)]
+
+    (is (= (set all-actual-rows-expected)
+           (set all-actual-rows)))
+
+    (fn-apply-sorting field)
+
+    (let [sorted-asc-actual-rows          (fn-get-datagrid-data)
+          sorted-asc-actual-rows-expected (map #(-> % :ru :expected) all-rows-sorted-asc)]
+        (is (=
+             sorted-asc-actual-rows
+             sorted-asc-actual-rows-expected)))
+
+    (fn-apply-sorting field)
+
+    (let [sorted-desc-actual-rows          (fn-get-datagrid-data)
+          sorted-desc-actual-rows-expected (map #(-> % :ru :expected) all-rows-sorted-desc)]
+        (is (=
+             sorted-desc-actual-rows
+             sorted-desc-actual-rows-expected))))))
+
 (defn common-search-test
   "Common search test algorithm. Steps:
    1. generate noise rows
