@@ -17,7 +17,8 @@
 (def init-state {:dialog-closed true
                  :uuid nil
                  :form-data {}
-                 :is-valid-form-data false})
+                 :is-valid-form-data false
+                 :backend-validation-rules nil})
 
 (reg-sub ::state #(-> %))
 
@@ -26,10 +27,12 @@
      (assoc state :dialog-closed false
                   :uuid (:uuid selection)
                   :form-data (:resource selection)
-                  :is-valid-form-data false)))
+                  :is-valid-form-data false
+                  :backend-validation-rules nil)))
 
 (rf/reg-event-db ::close-dialog
-  #(assoc % :dialog-closed true))
+  #(assoc % :dialog-closed true
+            :backend-validation-rules nil))
 
 (rf/reg-event-fx ::send-event-update
   (fn [cofx _]
@@ -38,15 +41,21 @@
       (assoc {:db (:db cofx)} :fx [[:dispatch [::comm/send-event ::update [:patients/update uuid data]]]]))))
 
 (rf/reg-event-fx ::update
-  (fn [cofx]
-    (-> {:db (:db cofx)}
-      (assoc-in [:db :dialog-closed] true)
-      (assoc-in [:db :form-data] {})
-      (assoc :fx [[:dispatch [:frontend.patients.datagrid/datagrid-reload]]]))))
+  (fn [cofx [_ [_ {:keys [success rules]}]]]
+    (let [init-cofx {:db (:db cofx)}]
+      (if success
+        (-> init-cofx
+            (assoc-in [:db :dialog-closed] true)
+            (assoc-in [:db :form-data] {})
+            (assoc :fx [[:dispatch [:frontend.patients.datagrid/datagrid-reload]]]))
+        (-> init-cofx
+            (assoc-in [:db :backend-validation-rules] rules))))))
     
 (rf/reg-event-db ::on-change-form-data
-  (fn [state [_ field-name value]]
-    (assoc-in state [:form-data field-name] value)))
+   (fn [state [_ field-name value]]
+      (-> state
+         (assoc-in [:form-data field-name] value)
+         (assoc-in [:backend-validation-rules] nil))))
 
 (rf/reg-event-db ::on-validate-form-data
   (fn [module-state [_ errors]]
@@ -87,12 +96,28 @@
     (assoc rc-input-attrs :value (get-fn f-value)) ]]]))
 
 (defn- form [locale state patient-model]
-  (let [form-data (:form-data state)]
+  (let [form-data (:form-data state)
+        rules     (if-let [bvr (:backend-validation-rules state)]
+                    (->> bvr
+                         (reduce (fn [acc [f-name f-message]]
+                                   (assoc acc f-name {"required" true
+                                                      "rule"     {"validator" #(-> false)
+                                                                  "message"   f-message}})) {}))
+                    common.patients/validation-rules)
+        rules-translated (->> rules
+                              (reduce (fn [acc [rule-name rule-body]]
+                                (assoc acc
+                                       rule-name
+                                       (if-let [message-code (get-in rule-body ["rule" "message"] )]
+                                         (assoc-in rule-body
+                                                   ["rule" "message"]
+                                                   (get-in locale [:validate-rule-message message-code]))
+                                         rule-body))) {} ))]    
     (into [:> Form
             {:errorType "tooltip"
              :className "f-full"
              :model form-data
-             :rules common.patients/validation-rules
+             :rules rules-translated
              :onChange (partial on-change-form-data patient-model)
              :onValidate on-validate-form-data}]
           (for [[f-name f-data] (:fields patient-model)]

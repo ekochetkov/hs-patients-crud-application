@@ -22,23 +22,67 @@
    (s/required-key :deleted) (s/maybe s/Int)
    (s/required-key :resource) db-resource-schema})
 
+;(def sys {:db-spec (System/getenv "DATABASE_URL")})
+
+;;(jdbc/query db-spec
+;;          ["select * from patients"])
+
+(defn patient-find-by-uuid [sys uuid]
+  (first (jdbc/query (:db-spec sys)
+            ["select * from patients where uuid = ? limit 1" uuid])))
+
+(defn patient-not-exists? [sys uuid]
+  (nil? (patient-find-by-uuid sys uuid)))
+
+(def patient-exists?
+  (complement patient-not-exists?))
+
+(defn unique? [sys row]
+  (let [uuid          (:uuid row)
+        policy_number (get-in row [:resource "policy_number"])
+        rows          (jdbc/query (:db-spec sys)
+                         ["select * from patients where (resource->>'policy_number')::text = ?" policy_number])]
+    (or (empty? rows)
+        (and (= 1 (count rows))
+             (= uuid
+                (-> rows first :uuid))))))
+
 (defmethod ws-process-event :patients/create
   [sys [_ resource]]
-    (let [{db-spec :db-spec} sys
-          uuid (java.util.UUID/randomUUID)
-          row-for-insert{ :uuid uuid :deleted nil :resource resource}]
-      (s/validate db-row-schema row-for-insert)      
-      (jdbc/insert! db-spec :patients row-for-insert) uuid))
-
+  (let [uuid (java.util.UUID/randomUUID)]
+    (if (patient-exists? sys uuid)
+      (recur sys [:patients/create resource])
+      (let [row-for-insert {:uuid     uuid
+                            :deleted  nil
+                            :resource resource}]
+        (s/validate db-row-schema row-for-insert)
+        (if (unique? sys row-for-insert)
+          (do
+            (jdbc/insert! (:db-spec sys) :patients row-for-insert)
+            {:success true
+             :uuid    uuid})
+          {:success false
+           :rules {"policy_number" :double-policy_number}})))))
+    
 (defmethod ws-process-event :patients/update
-  [ctx [_ uuid modified-fields]]
-  (let [{db-spec :db-spec} ctx
+  [sys [_ uuid modified-fields]]
+  (let [{db-spec :db-spec} sys
         source-row (first (jdbc/query db-spec
           ["select * from patients where uuid = ?" uuid]))        
         target-row (assoc-in source-row [:resource]
           (merge (:resource source-row) modified-fields))]
-      (s/validate db-row-schema target-row)      
-      (jdbc/update! db-spec :patients {:resource (:resource target-row)} ["uuid = ?" uuid]) uuid))
+
+    (when (nil? source-row)
+      (throw (Exception. (str "Record for " uuid " not found"))))
+    
+    (s/validate db-row-schema target-row)
+        (if (unique? sys target-row)
+          (do
+            (jdbc/update! db-spec :patients {:resource (:resource target-row)} ["uuid = ?" uuid])
+            {:success true
+             :uuid    uuid})
+          {:success false
+           :rules {"policy_number" :double-policy_number}})))
 
 (defmethod ws-process-event :patients/delete
   [ctx [_ uuid]]
