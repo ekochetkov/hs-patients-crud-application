@@ -39,10 +39,11 @@
         fields (e/children *driver* parent {:tag :span :type :field})]
     (->> fields
          (reduce (fn [acc el]
+                  (e/wait-predicate #(e/displayed-el? *driver* el))
                   (let [field-type (e/get-element-attr-el *driver* el "fieldtype")]
-            (assoc acc
-              (e/get-element-attr-el *driver* el "id")
-              (get-field-value field-type el)))) {}))))
+                     (assoc acc
+                            (e/get-element-attr-el *driver* el "id")
+                            (get-field-value field-type el)))) {}))))
 
 ;; Set values to fields
 
@@ -86,6 +87,7 @@
 
 (defmethod set-field-value "ButtonGroup" [_ el value]
   (let [buttons (e/children *driver* el {:type "subfield"})]
+     (e/wait-predicate #(e/displayed-el? *driver* el))
      (->> buttons
           (filter #(= (e/get-element-attr-el *driver* % :value)
                       value))
@@ -129,6 +131,7 @@
   (let [form-el (e/query *driver* {:id id})]
     (->> (e/children *driver* form-el {:tag :span :type :field})
          (filter (fn [el]
+                   (e/wait-predicate #(e/displayed-el? *driver* el))
                    (= (e/get-element-attr-el *driver* el "id")
                       field-name)))
          first)))
@@ -136,8 +139,8 @@
 (defn set-values [id data]
   (e/wait-visible *driver* {:id id})
   (doall (map (fn [[name value]]
-                (let [el         (find-target-field id name)
-                      field-type (e/get-element-attr-el *driver* el "fieldtype")]
+                (let [el (find-target-field id name)]
                   (e/wait-predicate #(e/displayed-el? *driver* el))
-                  (set-field-value field-type el value))) data)))
+                  (let [field-type (e/get-element-attr-el *driver* el "fieldtype")]
+                    (set-field-value field-type el value)))) data)))
 
