@@ -13,8 +13,13 @@
 
 ;; Check result schemas
 
-(def create-event-result-schema
-  java.util.UUID)
+(def create-update-event-success-result-schema
+  {(schema/required-key :success) (schema/conditional #(= % true) schema/Bool)
+   (schema/required-key :uuid)    java.util.UUID})
+
+(def create-update-event-double-result-schema
+  {(schema/required-key :success) (schema/conditional #(= % false) schema/Bool)
+   (schema/required-key :rules)   {schema/Str schema/Keyword}})
 
 (def update-event-result-schema
   java.util.UUID)  
@@ -31,23 +36,31 @@
 (deftest create-event-result-schema-test
   (let [patient      (:db (gen-fake-patient))
         event        [:patients/create patient]
-        event-result (ws/ws-process-event ctx event)]    
-    (is (schema/validate create-event-result-schema
-                         event-result))))
+        event-result-1 (ws/ws-process-event ctx event)
+        event-result-2 (ws/ws-process-event ctx event)]    
+    (is (schema/validate create-update-event-success-result-schema
+                         event-result-1))
+    (is (schema/validate create-update-event-double-result-schema
+                         event-result-2))))
 
 (deftest update-event-result-schema-test
-  (let [patient (:db (gen-fake-patient))        
-        uuid    (ws/ws-process-event ctx
-                                     [:patients/create patient])
-        event-result (ws/ws-process-event ctx
-                                          [:patients/update uuid {}])]
-    (is (schema/validate update-event-result-schema
-                         event-result))))
-
+  (let [resources (gen-unique-fake-patients 2)
+        uuids     (doall (->> resources
+                              (map #(ws/ws-process-event ctx [:patients/create (:db %)]))
+                              (map :uuid)))
+        result-1 (ws-process-event ctx [:patients/update (first uuids) {}])
+        result-2 (ws-process-event ctx [:patients/update (first uuids) {"policy_number" (get-in (second resources)
+                                                                                                [:db "policy_number"])}])]
+    (is (schema/validate create-update-event-success-result-schema
+                         result-1))
+    (is (schema/validate create-update-event-double-result-schema
+                         result-2))))
+    
 (deftest delete-event-result-schema-test
   (let [patient      (:db (gen-fake-patient))        
-        uuid         (ws/ws-process-event ctx
-                                     [:patients/create patient])
+        uuid         (->> [:patients/create patient]
+                          (ws/ws-process-event ctx)
+                          :uuid)
         event-result (ws/ws-process-event ctx
                                           [:patients/delete uuid])]
     (is (= delete-event-result-schema
@@ -90,32 +103,47 @@
 (deftest positive-create-patient
   (let [patient (:db (gen-fake-patient))
         event [:patients/create patient]
-        inserted-uuid (ws/ws-process-event ctx event)
+        inserted-uuid (->> event
+                           (ws/ws-process-event ctx)
+                           :uuid)
         inserted-row (get-by-id ctx inserted-uuid)]
     (is (= patient
            (:resource inserted-row)))))
 
-(deftest negative-create-patient
+(deftest negative-create-patient-invalid-schema
   (let [event [:patients/create {}]]
     (is (thrown? Exception (ws/ws-process-event ctx event)))
     (is table-patients-empty?)))
 
-;; TODO: negative double
-
 ;; Update
 
 (deftest positive-update-patient
-  (let [resource (:db (gen-fake-patient))
+  (let [resource        (:db (gen-fake-patient))
         modified-fields {"patient_name" "Some new name"
-                         "address" "Some new address"}
-        uuid (ws-process-event ctx [:patients/create resource])
-        exist-row (get-by-id ctx uuid)
-        uuid (ws-process-event ctx [:patients/update uuid modified-fields])
-        updated-row (get-by-id ctx uuid)]
-
+                         "address"      "Some new address"}
+        uuid            (->> [:patients/create resource]
+                             (ws/ws-process-event ctx)
+                             :uuid)
+        exist-row       (get-by-id ctx uuid)
+        uuid            (->> [:patients/update uuid modified-fields]
+                             (ws-process-event ctx)
+                             :uuid)
+        updated-row     (get-by-id ctx uuid)]
     (is (not= exist-row updated-row))
     (is (= (merge resource modified-fields)
            (:resource updated-row)))))
+
+(deftest positive-update-patient-to-double-test
+  (let [resources       (gen-unique-fake-patients 2)
+        uuids           (doall (map #(->> [:patients/create (:db %)]
+                                          (ws/ws-process-event ctx)
+                                          :uuid) resources))
+        modified-fields {"policy_number" (get-in (first resources) [:db "policy_number"])}
+        result          (ws-process-event ctx [:patients/update (second uuids) modified-fields])]
+    (is (= {:success false
+            :rules   {"policy_number" :double-policy_number}}
+           result))))
+
 
 (deftest negative-update-not-exists-patient
   (let [modified-fields {}
@@ -127,7 +155,9 @@
 (deftest negative-update-incorrect-data
   (let [resource (:db (gen-fake-patient))
         modified-fields {"address" nil}
-        uuid (ws-process-event ctx [:patients/create resource])
+        uuid (->> [:patients/create resource]
+                  (ws-process-event ctx)
+                  :uuid)
         update-event [:patients/update uuid modified-fields]]
     (is (thrown? Exception
                  (ws-process-event ctx update-event)))))
@@ -135,7 +165,9 @@
 ;; Delete
 
 (deftest positive-delete-patient
-  (let [uuid (ws-process-event ctx [:patients/create (:db (gen-fake-patient))])
+  (let [uuid (->> [:patients/create (:db (gen-fake-patient))]
+                  (ws-process-event ctx)
+                  :uuid)
         created-row (get-by-id ctx uuid)                                    
         deleted-result (ws/ws-process-event ctx [:patients/delete uuid])
         deleted-row (get-by-id ctx uuid)]
@@ -152,7 +184,9 @@
                  (ws-process-event ctx delete-event)))))
 
 (deftest negative-delete-already-deleted-patient
-  (let [uuid (ws-process-event ctx [:patients/create (:db (gen-fake-patient))])
+  (let [uuid (->> [:patients/create (:db (gen-fake-patient))]
+                  (ws-process-event ctx)
+                  :uuid)
         delete-event [:patients/delete uuid]]
     (ws/ws-process-event ctx delete-event)    
     (is (thrown? Exception
@@ -236,7 +270,7 @@
 
     (is (= (count-table-patients ctx) total))  
     
-    (doall (->> uuids-for-delete
+    (doall (->> (map :uuid uuids-for-delete)
                 (map #(ws-process-event ctx [:patients/delete %]))))
 
     (let [read-event [:patients/read {:page-size total}]

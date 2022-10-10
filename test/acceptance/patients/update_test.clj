@@ -1,5 +1,5 @@
 (ns acceptance.patients.update-test
-  (:require [clojure.test :refer [deftest use-fixtures join-fixtures]]
+  (:require [clojure.test :refer [deftest use-fixtures join-fixtures is]]
             [etaoin.api :as e]
             [backend.ws-events]
             [acceptance.patients.core :as patients-core]
@@ -26,7 +26,7 @@
   (let [unique-data (patients-gen/gen-unique-fake-patients 10)
         data-exists (drop-last unique-data)
         data-update (last unique-data)]
-;;(e/wait 8)
+
     ;; Pre
     (patients-core/precondition-datagrid data-exists)
 
@@ -47,9 +47,33 @@
       (e/wait-invisible *driver* {:id du-anchors/dialog-form})
       
       ;; Post
-      (patients-core/data-grid-check-equal (u/replace-nth update-n-exists
+      (is (patients-core/data-grid-check-equal (u/replace-nth update-n-exists
                                                           data-exists
-                                                          data-update) data-exists))))
+                                                          data-update) data-exists)))))
+
+(deftest patients-update-double-test
+  (let [unique-data (patients-gen/gen-unique-fake-patients 10)
+        data-exists (drop-last unique-data)
+        data-update (assoc-in (last unique-data)
+                              [:ru :input "policy_number"] (get-in (first data-exists)
+                                                                   [:ru :input "policy_number"]))]
+
+    ;; Pre
+    (patients-core/precondition-datagrid data-exists)
+
+    ;; Action
+    (let [update-n (rand-int (count data-exists))]
+
+      (datagrid/context-menu dg-anchors/datagrid-table
+                             update-n
+                             "//div[@class='menu-icon icon-edit']")
+      
+      (form/set-values du-anchors/dialog-form (-> data-update :ru :input))
+      (e/wait-predicate #(link-button/enabled? du-anchors/footer-save-button))
+      
+      (link-button/click du-anchors/footer-save-button)
+      
+      (e/wait-predicate #(link-button/disabled? du-anchors/footer-save-button)))))
 
 (deftest patients-update-cancel-save
   (let [unique-data (patients-gen/gen-unique-fake-patients 10)

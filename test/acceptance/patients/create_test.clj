@@ -46,7 +46,6 @@
     (is (link-button/disabled? dc-anchors/footer-add-button)))
 
 (deftest empty-fields-after-fill-and-close
-
   (let [{:keys [input expected]} (:ru (patients-gen/gen-fake-patient))]
   
     (form/set-values dc-anchors/dialog-form input)
@@ -62,7 +61,6 @@
   (is (all-field-empty? dc-anchors/dialog-form)))
 
 (deftest positive
-
   (let [data (patients-gen/gen-fake-patient)]
   
     (form/set-values dc-anchors/dialog-form (-> data :ru :input))
@@ -73,5 +71,30 @@
     (e/wait-invisible *driver* {:id dc-anchors/dialog-form})
     (e/wait-invisible *driver* ".//div[@class='datagrid-mask']")  
 
-    (patients-core/data-grid-check-equal (list data))))
+    (is (patients-core/data-grid-check-equal (list data)))))
+
+(deftest negative-add-double
+  (let [data (patients-gen/gen-fake-patient)]
+
+    ;; First create
+    (form/set-values dc-anchors/dialog-form (-> data :ru :input))
+  
+    (is (link-button/enabled? dc-anchors/footer-add-button))
+
+    (link-button/click dc-anchors/footer-add-button)
+    (e/wait-invisible *driver* {:id dc-anchors/dialog-form})
+    (e/wait-invisible *driver* ".//div[@class='datagrid-mask']")
+
+    (is (patients-core/data-grid-check-equal (list data)))
+
+    ;; Second create
+    (e/click *driver* {:id dg-anchors/toolbar-patient-add-button})
+
+    (form/set-values dc-anchors/dialog-form (-> data :ru :input))
+  
+    (is (link-button/enabled? dc-anchors/footer-add-button))
+
+    (link-button/click dc-anchors/footer-add-button)
+
+    (e/wait-predicate #(link-button/disabled? dc-anchors/footer-add-button))))
     

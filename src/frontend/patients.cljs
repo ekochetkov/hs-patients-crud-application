@@ -66,6 +66,10 @@
                    :search.birth-date.between "Between"                   
                    :search.reset "Reset"
                    :search.apply "Apply"
+                   :validate-rule-required "This field is mandatory"
+                   :validate-rule-message {:double-policy_number "A patient with this policy number already exists"
+                                           :patient_name "The name can only contain characters and digits longer than 5"
+                                           :policy_number "The policy number contains 16 digits"}
                    :dialog-create.caption "Create patient"
                    :dialog-create.button-create "Create"
                    :dialog-update.caption "Update patient"
@@ -74,6 +78,8 @@
                                    :text "Delete patient"
                                    :yes "Yes"
                                    :no "No"}}
+
+              
               :ru {:datagrid {:displayMsg "Показаны записи с {from} по {to}. Всего {total}."
                               :loadMsg "Обработка... Пожалуйста, подождите"
                               :use-context-menu-message "Используйте контекстное меню для обновления или удаления строки"
@@ -119,6 +125,10 @@
                    :search.birth-date.between "Между"                                      
                    :search.reset "Сброс"
                    :search.apply "Применить"
+                   :validate-rule-required "Это поле является обязательным"
+                   :validate-rule-message {:double-policy_number "Пациент с данным номером полиса уже существует"
+                                           :patient_name         "Имя может содержать только символы и цифры длиной более 5"
+                                           :policy_number        "Номер полиса содержит 16 цифр"}
                    :dialog-create.caption "Добавить"
                    :dialog-create.button-create "Добавить"
                    :dialog-update.caption "Обновить данные пациента"
