@@ -1,0 +1,1 @@
+drop index patients_uuid_idx

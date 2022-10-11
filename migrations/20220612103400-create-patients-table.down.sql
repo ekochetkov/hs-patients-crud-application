@@ -1,1 +1,1 @@
-drop table patients;
+drop table patients
