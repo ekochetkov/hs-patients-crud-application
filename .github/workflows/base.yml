@@ -49,7 +49,7 @@ jobs:
       - name: Backend test
         run: clojure -X:backend-test
 
-  Build-frontend:
+  Build-frontend-and-pack:
     needs: [Lint]
     runs-on: ubuntu-latest
     steps:
@@ -64,21 +64,14 @@ jobs:
       - name: Compile frontend
         run: shadow-cljs release dev
 
-      - uses: actions/upload-artifact@v3
-        with:
-          name: main.js
-          path: resources/public/js/main.js
+      - name: Create Easyui styles dirs
+        run: mkdir --parents resources/public/css/easyui
 
-  Pack-application:
-    needs: [Test-backend, Build-frontend]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
+      - name: Copy Easyui base style files
+        run: cp --recursive node_modules/rc-easyui/dist/themes/{icons,icon.css,react.css} resources/public/css/easyui
 
-      - uses: actions/download-artifact@v3
-        with:
-          name: main.js
-          path: resources/public/js/
+      - name: Copy Easyui ui theme
+        run: cp --recursive node_modules/rc-easyui/dist/themes/default resources/public/css/easyui/theme
 
       - name: Install clojure tools
         uses: DeLaGuardo/setup-clojure@9.3
@@ -97,7 +90,7 @@ jobs:
           path: target/app.jar
 
   Acceptance-test-firefox:
-    needs: [Pack-application]
+    needs: [Test-backend, Build-frontend-and-pack]
     runs-on: ubuntu-latest
     env:
       APP_URL: "http://host.docker.internal"
