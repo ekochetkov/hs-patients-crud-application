@@ -1,0 +1,1 @@
+drop index patients_policy_number_idx
