@@ -127,20 +127,20 @@
         (e/click-el *driver* x-date)
         (e/click *driver* x-day))))
 
-(defn find-target-field [id field-name]
-  (let [form-el (e/query *driver* {:id id})]
+(defn find-target-field [form-el field-name]
     (->> (e/children *driver* form-el {:tag :span :type :field})
          (filter (fn [el]
                    (e/wait-predicate #(e/displayed-el? *driver* el))
                    (= (e/get-element-attr-el *driver* el "id")
                       field-name)))
-         first)))
+         first))
 
 (defn set-values [id data]
   (e/wait-visible *driver* {:id id})
+  (let [form-el (e/query *driver* {:id id})]
   (doall (map (fn [[name value]]
-                (let [el (find-target-field id name)]
+                (let [el (find-target-field form-el name)]
                   (e/wait-predicate #(e/displayed-el? *driver* el))
                   (let [field-type (e/get-element-attr-el *driver* el "fieldtype")]
-                    (set-field-value field-type el value)))) data)))
+                    (set-field-value field-type el value)))) data))))
 
