@@ -159,7 +159,7 @@ jobs:
 
 
   Acceptance-test-chrome:
-    needs: [Pack-application]
+    needs: [Test-backend, Build-frontend-and-pack]
     runs-on: ubuntu-latest
     env:
       APP_URL: "http://host.docker.internal"
