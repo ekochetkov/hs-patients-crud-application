@@ -39,6 +39,10 @@
                   :jar        "target/app.jar"
                   :main-class backend.core}}
 
+  :seed
+  {:exec-fn      backend.utils/seed-patients-table
+   :exec-args    {:count 100}}
+
   :migrate
   {:extra-deps {com.github.paulbutcher/clj-migratus {:git/tag "v1.0.3" :git/sha "46a3ac1"}}
    :main-opts  ["-m" "clj-migratus" "migrate"]}

@@ -2,7 +2,7 @@
 
 (def validation-rules
   {"patient_name" {"required" true
-                   "rule" {"validator" #(re-matches #"^[\s\dA-zА-я]{5,}$" %)
+                   "rule" {"validator" #(re-matches #"^[\s\dA-zА-яЁё]{5,}$" %)
                            "message" :patient_name}}
    "policy_number" {"required" true
                     "rule" {"validator" #(re-matches #"^[\d]{16}$" %)
