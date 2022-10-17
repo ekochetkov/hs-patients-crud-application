@@ -28,9 +28,10 @@
   (hp/html [:html
     [:head
      [:title "Patients CRUD application"]
-     [:link {:href "themes/gray/easyui.css", :type "text/css", :rel "stylesheet"}]
-     [:link {:href "themes/icon.css", :type "text/css", :rel "stylesheet"}]
-     [:link {:href "themes/react.css", :type "text/css", :rel "stylesheet"}]]
+     [:link {:href "css/easyui/theme/easyui.css", :type "text/css", :rel "stylesheet"}]
+     [:link {:href "css/easyui/icon.css", :type "text/css", :rel "stylesheet"}]
+     [:link {:href "css/easyui/react.css", :type "text/css", :rel "stylesheet"}]
+     [:link {:href "css/app/style.css", :type "text/css", :rel "stylesheet"}]]
     [:body
      (when (System/getenv "RUN_IN_K8S")
        (k8s-pod-info))
