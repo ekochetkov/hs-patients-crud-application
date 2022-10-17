@@ -127,13 +127,21 @@
         (e/click-el *driver* x-date)
         (e/click *driver* x-day))))
 
-(defn find-target-field [form-el field-name]
-    (->> (e/children *driver* form-el {:tag :span :type :field})
-         (filter (fn [el]
-                   (e/wait-predicate #(e/displayed-el? *driver* el))
-                   (= (e/get-element-attr-el *driver* el "id")
-                      field-name)))
-         first))
+(defn find-target-field
+  ([form-el field-name] (find-target-field form-el field-name 5))
+  ([form-el field-name last-attempts]
+   (if-let [target-field-el (->> (e/children *driver* form-el {:tag :span :type :field})
+                                 (filter (fn [el]
+                                            (e/wait-predicate #(e/displayed-el? *driver* el))
+                                            (= (e/get-element-attr-el *driver* el "id")
+                                               field-name)))
+                                 first)]
+     target-field-el
+     (if (zero? last-attempts)
+       (throw (Exception. "Can't find target field after some attempts"))
+       (do
+         (e/wait 0.2)
+         (recur form-el field-name (dec last-attempts)))))))
 
 (defn set-values [id data]
   (e/wait-visible *driver* {:id id})
