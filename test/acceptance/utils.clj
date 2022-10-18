@@ -2,7 +2,17 @@
   (:require [etaoin.api :as e]
             [etaoin.keys :as k]
             [acceptance.context :refer [*driver*]]
-            [clojure.string :as s]))
+            [clojure.string :as s])
+  (:import [java.security MessageDigest]))
+
+(defn md5
+  "https://gist.github.com/jizhang/4325757?permalink_comment_id=2633984#gistcomment-2633984"
+  [^String s]
+  (->> s
+       .getBytes
+       (.digest (MessageDigest/getInstance "MD5"))
+       (BigInteger. 1)
+       (format "%032x")))
 
 (defn deep-merge
   "Recursively merges maps.

@@ -80,7 +80,7 @@
           "address" (address)
           "policy_number" (policy_number)}))
 
-(def iterations-max-count 1000)
+(def iterations-max-count 10000)
 
 (defn gen-fake-patient
   ([] (gen-fake-patient 0 nil))
