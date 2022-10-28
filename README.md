@@ -145,3 +145,7 @@ Check health of app:
 
 5. `http://<you domain and port>/health`
 6. Go application: `http://<you domain and port>`
+
+7. Optional seed data: `./seed-data-in-cluster.sh`
+
+*For local balancer tunnel:* `sudo socat TCP-LISTEN:80,fork TCP:10.110.188.96:80`
